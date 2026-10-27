@@ -70,7 +70,7 @@ class RoomPlayerCard : UILinearContainer() {
                 null -> Theme.current.accentColor * 0.6f
             }
 
-            if (player.id == OnlineManager.getInstance().userId) {
+            if (player.id == Multiplayer.localUid) {
                 teamColorBar.onActionUp = { showTeamDropdown() }
             } else {
                 teamColorBar.onActionUp = null
@@ -256,7 +256,7 @@ class RoomPlayerCard : UILinearContainer() {
 
             lastPlayerId = player.id
             nameText.text = player.name
-            rankText.text = "#${player.rank}"
+            rankText.text = if (LanSession.isActive) "" else "#${player.rank}"
 
             updatePlayerIcons(room, player)
 

@@ -1,5 +1,7 @@
 package com.osudroid.ui.v2.multi
 
+import com.mosu.lan.LanSession
+
 import com.osudroid.BuildSettings
 import java.util.concurrent.atomic.AtomicBoolean
 import com.osudroid.beatmaplisting.BeatmapDownloader
@@ -734,6 +736,12 @@ class RoomScene(
 
     override fun back() {
         teardownSession()
+
+        if (LanSession.isActive) {
+            LanSession.leave()
+            return
+        }
+
         UIEngine.current.scene = LobbyScene()
     }
 
@@ -924,7 +932,7 @@ class RoomScene(
         }
 
         // Notify to the host when other players can't download the beatmap.
-        if (Multiplayer.isRoomHost && beatmap != null && beatmap.parentSetID == null) {
+        if (Multiplayer.isRoomHost && beatmap != null && beatmap.parentSetID == null && !LanSession.isActive) {
             mainThread { ToastLogger.showText(R.string.multiplayer_room_beatmap_unavailable, false) }
         }
 

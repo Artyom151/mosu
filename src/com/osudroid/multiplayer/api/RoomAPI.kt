@@ -1,5 +1,6 @@
 package com.osudroid.multiplayer.api
 
+import com.mosu.lan.LanSession
 import com.osudroid.BuildSettings
 import com.osudroid.debug.MockSocket
 import com.osudroid.multiplayer.*
@@ -271,7 +272,7 @@ object RoomAPI {
             room.beatmap = parseBeatmap(json.optJSONObject("beatmap"))
             room.status = RoomStatus.fromWire(json.getString("status"))
 
-            val localPlayer = room.playersMap[OnlineManager.getInstance().userId]
+            val localPlayer = room.playersMap[Multiplayer.localUid]
 
             if (localPlayer == null) {
                 Multiplayer.log("ERROR: initialConnection — local player UID not found in server player list. Disconnecting.")
@@ -478,14 +479,18 @@ object RoomAPI {
 
         Multiplayer.log("Starting connection -> $roomId, $userId")
 
-        val newSocket = if (BuildSettings.MOCK_MULTIPLAYER) MockSocket(userId) else IO.socket(url, IO.Options().also {
-            it.auth = auth
+        val newSocket = when {
+            LanSession.isActive -> LanSession.createSocket(roomPassword)
+            BuildSettings.MOCK_MULTIPLAYER -> MockSocket(userId)
+            else -> IO.socket(url, IO.Options().also {
+                it.auth = auth
 
-            // Explicitly not allow the socket to reconnect as we are using our own
-            // reconnection system (the socket.io Java client does not support connection
-            // state recovery).
-            it.reconnection = false
-        })
+                // Explicitly not allow the socket to reconnect as we are using our own
+                // reconnection system (the socket.io Java client does not support connection
+                // state recovery).
+                it.reconnection = false
+            })
+        }
 
         socket = newSocket
 

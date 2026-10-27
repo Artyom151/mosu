@@ -2,6 +2,7 @@ package com.osudroid.multiplayer
 
 import android.net.*
 import android.util.Log
+import com.mosu.lan.LanSession
 import com.osudroid.multiplayer.api.RoomAPI
 import com.osudroid.multiplayer.api.data.Room
 import com.osudroid.multiplayer.api.data.RoomPlayer
@@ -82,6 +83,13 @@ object Multiplayer {
     @JvmStatic
     val isConnected
         get() = room != null
+
+    /**
+     * The uid of the local player: the LAN identity in LAN rooms, the online account otherwise.
+     */
+    @JvmStatic
+    val localUid: Long
+        get() = if (LanSession.isActive) LanSession.uid else OnlineManager.getInstance().userId
 
     private val logger = MultiplayerLogger()
 
@@ -207,7 +215,7 @@ object Multiplayer {
         // Replace server statistics with local in Head-to-Head mode.
         if (room?.isTeamVersus == false) {
             val ownScore = GlobalManager.getInstance().gameScene.stat
-            val ownScoreIndex = list.indexOfFirst { it.uid == OnlineManager.getInstance().userId }.takeUnless { it == -1 }
+            val ownScoreIndex = list.indexOfFirst { it.uid == localUid }.takeUnless { it == -1 }
 
             if (ownScore != null) {
                 if (ownScoreIndex == null) {
@@ -365,7 +373,7 @@ object Multiplayer {
                 try {
                     RoomAPI.connectToRoom(
                         roomId = room.id,
-                        userId = OnlineManager.getInstance().userId,
+                        userId = localUid,
                         gameSessionId = OnlineManager.getInstance().sessionId,
                         roomPassword = RoomAPI.lastRoomPassword,
                         multiplayerSessionID = room.sessionID

@@ -1,6 +1,8 @@
 package com.osudroid.ui.v2.multi
 
 import android.util.Log
+import com.mosu.lan.LanLobby
+import com.osudroid.utils.mainThread
 import com.osudroid.multiplayer.*
 import com.reco1l.andengine.sprite.*
 import ru.nsu.ccfit.zuev.osu.SecurityUtils
@@ -88,6 +90,15 @@ class LobbyScene : UIScene() {
                         setText(string.multiplayer_lobby_create_room)
                         onActionUp = {
                             RoomCreateDialog(this@LobbyScene).show()
+                        }
+                    }
+
+                    textButton {
+                        text = "LAN"
+                        onActionUp = {
+                            back()
+                            GlobalManager.getInstance().songService.isGaming = true
+                            mainThread { LanLobby().show() }
                         }
                     }
 

@@ -1,5 +1,7 @@
 package com.osudroid.ui
 
+import com.mosu.lan.LanLobby
+
 import com.osudroid.BuildSettings
 import com.osudroid.resources.R
 import com.osudroid.ui.v1.SettingsFragment
@@ -123,8 +125,10 @@ class MainMenu(val main: MainScene) {
                     return true
                 }
 
+                // Without an online account, multiplayer means LAN multiplayer.
                 if (!OnlineManager.getInstance().isStayOnline && !BuildSettings.MOCK_MULTIPLAYER) {
-                    ToastLogger.showText(StringTable.format(R.string.multiplayer_not_online), true)
+                    GlobalManager.getInstance().songService.isGaming = true
+                    mainThread { LanLobby().show() }
                     return true
                 }
 
