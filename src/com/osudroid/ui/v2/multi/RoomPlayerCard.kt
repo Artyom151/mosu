@@ -360,10 +360,17 @@ class RoomPlayerCard : UILinearContainer() {
 
         private fun loadAvatar(userId: Long) {
             val resourceManager = ResourceManager.getInstance()
-            val avatarUrl = OnlineManager.getAvatarURL(userId)
 
             avatarJob?.cancel()
             avatarJob = null
+
+            // LAN players have no online account: don't ask the online server for avatars of local identities.
+            if (LanSession.isActive) {
+                avatarSprite.textureRegion = resourceManager.loadHighQualityAsset("lan-avatar", "lan-avatar.png") ?: defaultAvatar
+                return
+            }
+
+            val avatarUrl = OnlineManager.getAvatarURL(userId)
 
             val avatarKey = MD5Calculator.getStringMD5(avatarUrl)
             val loadedTexture = resourceManager.getTextureIfLoaded(avatarKey)
