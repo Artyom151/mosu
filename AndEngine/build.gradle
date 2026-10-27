@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     namespace 'org.anddev.andengine'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         minSdkVersion 24

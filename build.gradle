@@ -9,11 +9,12 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath 'com.google.gms:google-services:4.4.2'
         classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.3'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
         classpath "androidx.room:room-gradle-plugin:$room_version"
     }
 }
@@ -53,12 +54,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
 apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 apply plugin: 'androidx.room'
 
 android {
     namespace 'ru.nsu.ccfit.zuev.osuplus'
-    compileSdk 34
+    compileSdk 36
     ndkVersion '22.1.7171670'
 
     defaultConfig {
@@ -103,7 +105,7 @@ android {
 
     buildTypes {
         debug {
-            resValue "string", "app_name", "osu!droid-debug"
+            resValue "string", "app_name", "mosu-debug"
             applicationIdSuffix '.debug'
             firebaseCrashlytics {
                 mappingFileUploadEnabled false
@@ -111,7 +113,7 @@ android {
         }
 
         release {
-            resValue "string", "app_name", "osu!droid"
+            resValue "string", "app_name", "mosu"
 //            minifyEnabled true
 //            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg', 'proguard-kotlin.pro'
             signingConfig signingConfigs.release
@@ -122,7 +124,7 @@ android {
 
         pre_release {
             matchingFallbacks = ['release']
-            resValue "string", "app_name", "osu!droid"
+            resValue "string", "app_name", "mosu"
 //            minifyEnabled true
 //            debuggable true
 //            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg', 'proguard-kotlin.pro'
@@ -167,6 +169,7 @@ android {
     }
     buildFeatures {
         buildConfig true
+        compose true
     }
 
     testOptions {
@@ -177,7 +180,7 @@ android {
 
     android.applicationVariants.configureEach { variant ->
         variant.outputs.configureEach { output ->
-            def fileName = "osudroid-${defaultConfig.versionName}-${variant.buildType.name}.apk"
+            def fileName = "mosu-${defaultConfig.versionName}-${variant.buildType.name}.apk"
             outputFileName = fileName
         }
     }
@@ -189,6 +192,16 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'com.google.android.material:material:1.11.0'
+
+    // Jetpack Compose + Material 3 (Expressive)
+    implementation platform('androidx.compose:compose-bom:2025.06.01')
+    implementation 'androidx.compose.material3:material3:1.5.0-alpha14'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.activity:activity-compose:1.10.1'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
     implementation 'com.google.firebase:firebase-crashlytics:19.4.0'
     implementation 'com.google.firebase:firebase-analytics:22.2.0'
     implementation 'com.google.firebase:firebase-messaging:24.1.0'
