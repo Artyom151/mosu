@@ -1,7 +1,8 @@
 package com.osudroid.beatmaplisting
 
 import android.os.Environment.DIRECTORY_DOWNLOADS
-import android.view.View
+import com.mosu.ui.components.DownloadPhase
+import com.mosu.ui.components.DownloadUiState
 import com.osudroid.resources.R.*
 import com.reco1l.framework.net.FileRequest
 import com.reco1l.framework.net.IFileRequestObserver
@@ -50,24 +51,18 @@ object BeatmapDownloader : IFileRequestObserver {
         fragment = DownloadFragment()
         fragment.setDownloader(downloader) {
 
-            fragment.text.visibility = View.VISIBLE
-            fragment.text.text = context.getString(string.beatmap_downloader_connecting)
-
-            fragment.button.visibility = View.VISIBLE
-            fragment.button.text = context.getString(string.beatmap_downloader_cancel)
+            fragment.state = DownloadUiState(
+                title = currentFilename,
+                message = context.getString(string.beatmap_downloader_connecting),
+                phase = DownloadPhase.Connecting,
+                cancelLabel = context.getString(string.beatmap_downloader_cancel)
+            )
+            fragment.onCancel = { downloader.cancel() }
 
             downloader.observer = this@BeatmapDownloader
 
             async {
                 downloader.execute()
-
-                mainThread {
-                    fragment.text.text = StringTable.format(string.beatmap_downloader_downloading, currentFilename)
-                }
-            }
-
-            fragment.button.setOnClickListener {
-                downloader.cancel()
             }
         }
         fragment.show()
@@ -76,12 +71,12 @@ object BeatmapDownloader : IFileRequestObserver {
 
     override fun onDownloadEnd(downloader: FileRequest) {
         mainThread {
-            fragment.progressBar.visibility = View.GONE
-            fragment.progressBar.isIndeterminate = true
-            fragment.progressBar.visibility = View.VISIBLE
-
-            fragment.text.text = StringTable.format(string.beatmap_downloader_importing, currentFilename)
-            fragment.button.visibility = View.GONE
+            fragment.state = fragment.state.copy(
+                message = StringTable.format(string.beatmap_downloader_importing, currentFilename),
+                phase = DownloadPhase.Importing,
+                speed = "",
+                cancellable = false
+            )
         }
 
         val file = downloader.file
@@ -124,14 +119,13 @@ object BeatmapDownloader : IFileRequestObserver {
 
     override fun onDownloadUpdate(downloader: FileRequest) {
 
-        val info = "\n%.3f mb/s (%d%%)".format(downloader.speedKbps / 1024, downloader.progress.toInt())
-
         mainThread {
-            fragment.text.text = context.getString(string.beatmap_downloader_downloading).format(
-                currentFilename
-            ) + info
-            fragment.progressBar.isIndeterminate = false
-            fragment.progressBar.progress = downloader.progress.toInt()
+            fragment.state = fragment.state.copy(
+                message = StringTable.format(string.beatmap_downloader_downloading, currentFilename),
+                phase = DownloadPhase.Downloading,
+                progress = (downloader.progress / 100.0).toFloat(),
+                speed = "%.2f MB/s".format(downloader.speedKbps / 1024)
+            )
         }
     }
 

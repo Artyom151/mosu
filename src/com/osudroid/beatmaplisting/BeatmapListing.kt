@@ -30,7 +30,10 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import com.edlplan.ui.fragment.BaseFragment
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.mosu.ui.components.MosuLoadingIndicator
+import com.mosu.ui.theme.MosuTheme
 import com.osudroid.BuildSettings
 import com.reco1l.framework.bass.URLBassStream
 import com.reco1l.framework.net.IFileRequestObserver
@@ -101,7 +104,7 @@ class BeatmapListing : BaseFragment(),
     private var offset = 0
 
 
-    private lateinit var indicator: CircularProgressIndicator
+    private lateinit var indicator: ComposeView
 
     private lateinit var recyclerView: RecyclerView
 
@@ -141,6 +144,8 @@ class BeatmapListing : BaseFragment(),
         searchBox.setOnKeyListener(this)
 
         indicator = findViewById(R.id.indicator)!!
+        indicator.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        indicator.setContent { MosuTheme(darkTheme = true) { MosuLoadingIndicator() } }
 
         logoView = findViewById(R.id.logo)!!
         logoView.text = mirror.description

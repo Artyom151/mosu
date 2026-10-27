@@ -2,6 +2,16 @@
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <PreferenceCategory android:title="Skins">
+
+        <Preference
+            android:key="skinDownloader"
+            android:title="Download skins"
+            android:summary="Browse osuskins.net with previews and install skins"
+            app:layout="@layout/settings_preference_bottom" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/opt_category_import">
 
         <CheckBoxPreference

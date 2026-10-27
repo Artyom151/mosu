@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.mosu.skins.SkinListing
 import com.mosu.ui.settings.SettingsRail
 import com.mosu.ui.settings.SettingsRailEntry
 import com.mosu.ui.theme.MosuTheme
@@ -491,6 +492,11 @@ class SettingsFragment : SettingsFragment() {
 
 
     private fun handleLibrarySectionPreferences() {
+        findPreference<Preference>("skinDownloader")!!.setOnPreferenceClickListener {
+            SkinListing().show()
+            true
+        }
+
         findPreference<Preference>("clear_beatmap_cache")!!.setOnPreferenceClickListener {
             LibraryManager.clearDatabase()
             ToastLogger.showText(StringTable.get(string.library_cleared), true)

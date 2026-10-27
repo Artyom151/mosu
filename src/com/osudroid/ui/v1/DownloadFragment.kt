@@ -1,16 +1,20 @@
 package com.osudroid.ui.v1
 
-import android.text.TextUtils
-import android.view.View
-import android.widget.Button
-import android.widget.TextView
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.edlplan.ui.fragment.LoadingFragment
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.mosu.ui.components.DownloadCard
+import com.mosu.ui.components.DownloadUiState
+import com.mosu.ui.theme.MosuTheme
 import com.reco1l.framework.net.FileRequest
-import com.reco1l.framework.android.cornerRadius
-import com.reco1l.framework.android.dp
 import ru.nsu.ccfit.zuev.osuplus.R
 
+/**
+ * Overlay showing the progress of a download using Material 3 Expressive indicators.
+ */
 class DownloadFragment : LoadingFragment() {
 
     override val layoutID = R.layout.download_fragment
@@ -21,24 +25,27 @@ class DownloadFragment : LoadingFragment() {
     private lateinit var onLoad: Runnable
 
 
-    lateinit var button: Button
-        private set
+    /**
+     * The state displayed by the overlay. Must be modified from the main thread.
+     */
+    var state by mutableStateOf(DownloadUiState(title = ""))
 
-    lateinit var text: TextView
-        private set
-
-    lateinit var progressBar: CircularProgressIndicator
-        private set
+    /**
+     * Called when the user taps the cancel button.
+     */
+    var onCancel: () -> Unit = {}
 
 
     override fun onLoadView() {
         super.onLoadView()
 
-        findViewById<View>(R.id.frg_body)!!.cornerRadius = 14f.dp
-
-        text = findViewById(R.id.text)!!
-        button = findViewById(R.id.cancel_button)!!
-        progressBar = findViewById(R.id.progress)!!
+        val compose = findViewById<ComposeView>(R.id.download_compose)!!
+        compose.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        compose.setContent {
+            MosuTheme(darkTheme = true) {
+                DownloadCard(state, onCancel = { onCancel() })
+            }
+        }
 
         onLoad.run()
     }
@@ -47,11 +54,6 @@ class DownloadFragment : LoadingFragment() {
     fun setDownloader(downloader: FileRequest, onLoad: Runnable) {
         this.onLoad = onLoad
         this.downloader = downloader
-    }
-
-    fun setText(content: String) {
-        text.visibility = if (TextUtils.isEmpty(content)) View.GONE else View.VISIBLE
-        text.text = content
     }
 
 
