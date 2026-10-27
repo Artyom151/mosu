@@ -64,6 +64,7 @@ android {
     ndkVersion '22.1.7171670'
 
     defaultConfig {
+        applicationId 'app.mosu'
         minSdkVersion 24
         targetSdkVersion 29
         versionCode getReleaseVersionCode()
@@ -240,4 +241,68 @@ dependencies {
     ksp "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-ktx:$room_version"
     testImplementation "androidx.room:room-testing:$room_version"
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// Signing tasks
+// ---------------------------------------------------------------------------------------------
+
+// Generates a release keystore and writes its credentials to local.properties (read by signingConfigs.release).
+//   ./gradlew generateKeystore [-PkeystorePassword=...] [-PkeyAlias=mosu] [-PkeystoreFile=mosu-release.jks]
+tasks.register('generateKeystore') {
+    group = 'signing'
+    description = 'Generates a release keystore and stores its credentials in local.properties.'
+
+    doLast {
+        def keystore = file(project.findProperty('keystoreFile') ?: 'mosu-release.jks')
+        def alias = project.findProperty('keyAlias') ?: 'mosu'
+        def password = project.findProperty('keystorePassword') ?: UUID.randomUUID().toString().replace('-', '')
+
+        if (keystore.exists()) {
+            throw new GradleException("$keystore already exists, refusing to overwrite it.")
+        }
+
+        exec {
+            commandLine 'keytool', '-genkeypair', '-v',
+                    '-keystore', keystore.absolutePath,
+                    '-alias', alias,
+                    '-keyalg', 'RSA', '-keysize', '4096', '-validity', '10000',
+                    '-storepass', password, '-keypass', password,
+                    '-dname', 'CN=mosu, O=mosu, C=US'
+        }
+
+        def props = new Properties()
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.withInputStream { props.load(it) }
+        }
+        props.setProperty('RELEASE_KEYSTORE', keystore.absolutePath)
+        props.setProperty('RELEASE_KEYSTORE_PASSWORD', password)
+        props.setProperty('RELEASE_KEY_ALIAS', alias)
+        props.setProperty('RELEASE_KEY_PASSWORD', password)
+        localPropertiesFile.withOutputStream { props.store(it, null) }
+
+        println("Keystore: $keystore")
+        println("Credentials saved to local.properties. Back the keystore up: losing it means no updates.")
+    }
+}
+
+// Verifies that the release APK is signed (and with which certificate).
+tasks.register('verifyReleaseSignature') {
+    group = 'signing'
+    description = 'Runs apksigner verify on the assembled release APK.'
+    dependsOn 'assembleRelease'
+
+    doLast {
+        def apk = fileTree(dir: "$buildDir/outputs/apk/release", include: '*.apk').files.max { it.lastModified() }
+        def sdk = System.getenv('ANDROID_HOME') ?: localProperties.getProperty('sdk.dir')
+        def apksigner = file("$sdk/build-tools").listFiles()?.sort { it.name }?.reverse()
+                ?.collect { new File(it, 'apksigner') }?.find { it.exists() }
+
+        if (apk == null || apksigner == null) {
+            throw new GradleException('Release APK or apksigner not found.')
+        }
+
+        exec { commandLine apksigner.absolutePath, 'verify', '--verbose', '--print-certs', apk.absolutePath }
+    }
 }

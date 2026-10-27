@@ -39,6 +39,7 @@ proguard_logs/
 .kotlin/
 
 release.jks
+mosu-release.jks
 
 # Claude configuration and history
 .claude/settings.local.json
