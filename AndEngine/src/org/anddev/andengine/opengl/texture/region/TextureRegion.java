@@ -36,7 +36,7 @@ public class TextureRegion extends BaseTextureRegion {
 
 	@Override
 	public TextureRegion deepCopy() {
-		return new TextureRegion(this.mTexture, this.mTexturePositionX, this.mTexturePositionY, this.mWidth, this.mHeight);
+		return this.registerCopy(new TextureRegion(this.mTexture, this.mTexturePositionX, this.mTexturePositionY, this.mWidth, this.mHeight));
 	}
 
 	@Override

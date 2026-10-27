@@ -105,7 +105,7 @@ public class TiledTextureRegion extends BaseTextureRegion {
 	public TiledTextureRegion deepCopy() {
 		final TiledTextureRegion deepCopy = new TiledTextureRegion(this.mTexture, this.getTexturePositionX(), this.getTexturePositionY(), this.getWidth(), this.getHeight(), this.mTileColumns, this.mTileRows);
 		deepCopy.setCurrentTileIndex(this.mCurrentTileColumn, this.mCurrentTileRow);
-		return deepCopy;
+		return this.registerCopy(deepCopy);
 	}
 
 	@Override

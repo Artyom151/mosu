@@ -1,6 +1,7 @@
 package com.osudroid.ui.v2.multi
 
 import com.edlplan.ui.fragment.WebViewFragment
+import com.mosu.lan.LanSession
 import com.osudroid.multiplayer.Multiplayer
 import com.osudroid.multiplayer.api.RoomAPI
 import com.osudroid.multiplayer.api.data.*

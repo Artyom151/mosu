@@ -50,6 +50,7 @@ import app.mosu.BuildConfig;
 import ru.nsu.ccfit.zuev.skins.OsuSkin;
 import ru.nsu.ccfit.zuev.skins.SkinJsonReader;
 import com.osudroid.ui.skinning.SkinTextureUtils;
+import ru.nsu.ccfit.zuev.osu.game.GameObjectPool;
 import ru.nsu.ccfit.zuev.skins.BeatmapSkinManager;
 
 public class ResourceManager {
@@ -113,6 +114,11 @@ public class ResourceManager {
 
     private final Map<String, Integer> customFrameCount = Collections.synchronizedMap(new HashMap<>());
     private final Map<String, TextureRegion> customTextures = Collections.synchronizedMap(new HashMap<>());
+
+    /**
+     * The asset file each texture loaded with {@link #loadHighQualityAsset} comes from.
+     */
+    private final Map<String, String> highQualityAssetFiles = Collections.synchronizedMap(new HashMap<>());
     private final Map<String, BassSoundProvider> customSounds = Collections.synchronizedMap(new HashMap<>());
 
     private Engine engine;
@@ -141,6 +147,7 @@ public class ResourceManager {
         customSounds.clear();
         customTextures.clear();
         customFrameCount.clear();
+        highQualityAssetFiles.clear();
 
         initSecurityUtils();
     }
@@ -157,6 +164,9 @@ public class ResourceManager {
             folder = folder + "/";
 
         loadCustomSkin(folder);
+
+        // Pooled gameplay objects were built with the previous skin's textures and sizes.
+        GameObjectPool.getInstance().purge();
 
         loadTexture("defaultapproachcircle", "gfx/approachcircle.png", false);
         loadTexture("ranking_enabled_score", "ranking_enabled_score.png", false);
@@ -509,8 +519,10 @@ public class ResourceManager {
     }
 
     public TextureRegion loadBackground(final String file, Engine engine) {
-        if (textures.containsKey("::background")) {
-            engine.getTextureManager().unloadTexture(Objects.requireNonNull(textures.get("::background")).getTexture());
+        var previousBackground = textures.remove("::background");
+        // "::background" may alias "menu-background", whose texture must stay loaded.
+        if (previousBackground != null && !isTextureReferenced(previousBackground.getTexture())) {
+            engine.getTextureManager().unloadTexture(previousBackground.getTexture());
         }
         if (file == null) {
             return textures.get("menu-background");
@@ -555,7 +567,7 @@ public class ResourceManager {
             final BitmapTextureAtlas tex = new BitmapTextureAtlas(source.getWidth(), source.getHeight(), opt);
             region = TextureRegionFactory.createFromSource(tex, source, 0, 0, false);
             engine.getTextureManager().loadTexture(tex);
-            textures.put(resname, region);
+            region = storeTexture(resname, region, engine);
         } else {
             final QualityAssetBitmapSource source;
 
@@ -571,7 +583,7 @@ public class ResourceManager {
             final BitmapTextureAtlas tex = new BitmapTextureAtlas(source.getWidth(), source.getHeight(), opt);
             region = TextureRegionFactory.createFromSource(tex, source, 0, 0, false);
             engine.getTextureManager().loadTexture(tex);
-            textures.put(resname, region);
+            region = storeTexture(resname, region, engine);
         }
 
         return region;
@@ -579,6 +591,12 @@ public class ResourceManager {
 
     public TextureRegion loadHighQualityAsset(final String resname,
                                               final String file) {
+        // Scenes load their icons every time they're created; the asset doesn't change, so it's loaded only once.
+        var existing = textures.get(resname);
+        if (existing != null && file.equals(highQualityAssetFiles.get(resname))) {
+            return existing;
+        }
+
         TextureRegion region;
 
         final QualityAssetBitmapSource source = new QualityAssetBitmapSource(context, file);
@@ -589,7 +607,8 @@ public class ResourceManager {
         final BitmapTextureAtlas tex = new BitmapTextureAtlas(source.getWidth(), source.getHeight(), TextureOptions.BILINEAR);
         region = TextureRegionFactory.createFromSource(tex, source, 0, 0, false);
         engine.getTextureManager().loadTexture(tex);
-        textures.put(resname, region);
+        region = storeTexture(resname, region, engine);
+        highQualityAssetFiles.put(resname, file);
 
         return region;
     }
@@ -602,8 +621,7 @@ public class ResourceManager {
         BitmapTextureAtlas tex = new BitmapTextureAtlas(source.getWidth(), source.getHeight(), TextureOptions.BILINEAR);
         TextureRegion region = TextureRegionFactory.createFromSource(tex, source, 0, 0, false);
         engine.getTextureManager().loadTexture(tex);
-        textures.put(resname, region);
-        return region;
+        return storeTexture(resname, region, engine);
     }
 
     public void loadHighQualityFileUnderFolder(File folder) {
@@ -842,11 +860,62 @@ public class ResourceManager {
         }
     }
 
+    /**
+     * Stores [region] as [resname]. When a texture with that name was already loaded (e.g. the previous skin's), the
+     * existing region is pointed to the new texture instead, so every sprite using it shows the new one, and the
+     * previous texture is unloaded. Before, replaced textures were never unloaded and every skin change or scene
+     * creation leaked GPU memory until the system killed the game.
+     *
+     * @return The region to use for [resname].
+     */
+    private TextureRegion storeTexture(final String resname, final TextureRegion region, final Engine engine) {
+        var previous = textures.get(resname);
+
+        if (previous == null || previous == region || previous.getClass() != region.getClass()) {
+            textures.put(resname, region);
+            return region;
+        }
+
+        var previousTexture = previous.getTexture();
+
+        previous.replaceTexture(region.getTexture(), region.getTexturePositionX(), region.getTexturePositionY(), region.getWidth(), region.getHeight());
+
+        if (previousTexture != null && previousTexture != region.getTexture() && !isTextureReferenced(previousTexture)) {
+            engine.getTextureManager().unloadTexture(previousTexture);
+        }
+
+        return previous;
+    }
+
+    /**
+     * Whether any loaded texture region still uses [texture].
+     */
+    private boolean isTextureReferenced(final ITexture texture) {
+        if (texture == null) {
+            return false;
+        }
+
+        synchronized (textures) {
+            for (var region : textures.values()) {
+                if (region != null && region.getTexture() == texture) return true;
+            }
+        }
+
+        synchronized (customTextures) {
+            for (var region : customTextures.values()) {
+                if (region != null && region.getTexture() == texture) return true;
+            }
+        }
+
+        return false;
+    }
+
     public void unloadTexture(final String name) {
         if (textures.get(name) != null) {
             engine.getTextureManager().unloadTexture(
                     Objects.requireNonNull(textures.get(name)).getTexture());
             textures.remove(name);
+            highQualityAssetFiles.remove(name);
             Debug.i("Texture \"" + name + "\"unloaded");
         }
     }

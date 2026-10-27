@@ -1,5 +1,9 @@
 package org.anddev.andengine.opengl.texture.region;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
 
@@ -25,7 +29,12 @@ public abstract class BaseTextureRegion {
 	// Fields
 	// ===========================================================
 
-	protected final ITexture mTexture;
+	protected ITexture mTexture;
+
+	/**
+	 * Deep copies of this region, which follow it when its texture is replaced.
+	 */
+	private ArrayList<WeakReference<BaseTextureRegion>> mCopies;
 
 	protected final TextureRegionBuffer mTextureRegionBuffer;
 
@@ -56,6 +65,56 @@ public abstract class BaseTextureRegion {
 	}
 
 	protected abstract BaseTextureRegion deepCopy() throws DeepCopyNotSupportedException;
+
+	/**
+	 * Registers a deep copy of this region so it follows {@link #replaceTexture}.
+	 */
+	protected <T extends BaseTextureRegion> T registerCopy(final T pCopy) {
+		synchronized (this) {
+			if (this.mCopies == null) {
+				this.mCopies = new ArrayList<>(1);
+			}
+			this.mCopies.add(new WeakReference<>(pCopy));
+		}
+		return pCopy;
+	}
+
+	/**
+	 * Points this region to another texture (e.g. after a skin change), so everything drawing it shows the new texture
+	 * and the previous one can be unloaded. Deep copies of this region are moved to the new texture too, keeping their
+	 * offset from this region.
+	 */
+	public void replaceTexture(final ITexture pTexture, final int pTexturePositionX, final int pTexturePositionY, final int pWidth, final int pHeight) {
+		final int offsetX = pTexturePositionX - this.mTexturePositionX;
+		final int offsetY = pTexturePositionY - this.mTexturePositionY;
+
+		this.mTexture = pTexture;
+		this.mTexturePositionX = pTexturePositionX;
+		this.mTexturePositionY = pTexturePositionY;
+		this.mWidth = pWidth;
+		this.mHeight = pHeight;
+		this.updateTextureRegionBuffer();
+
+		synchronized (this) {
+			if (this.mCopies == null) {
+				return;
+			}
+
+			for (final Iterator<WeakReference<BaseTextureRegion>> iterator = this.mCopies.iterator(); iterator.hasNext(); ) {
+				final BaseTextureRegion copy = iterator.next().get();
+
+				if (copy == null) {
+					iterator.remove();
+					continue;
+				}
+
+				copy.mTexture = pTexture;
+				copy.mTexturePositionX += offsetX;
+				copy.mTexturePositionY += offsetY;
+				copy.updateTextureRegionBuffer();
+			}
+		}
+	}
 
 	// ===========================================================
 	// Getter & Setter
