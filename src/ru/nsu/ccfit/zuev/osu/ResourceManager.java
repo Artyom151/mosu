@@ -49,6 +49,7 @@ import ru.nsu.ccfit.zuev.osu.online.OnlineManager;
 import ru.nsu.ccfit.zuev.osuplus.BuildConfig;
 import ru.nsu.ccfit.zuev.skins.OsuSkin;
 import ru.nsu.ccfit.zuev.skins.SkinJsonReader;
+import com.osudroid.ui.skinning.SkinTextureUtils;
 import ru.nsu.ccfit.zuev.skins.BeatmapSkinManager;
 
 public class ResourceManager {
@@ -913,15 +914,20 @@ public class ResourceManager {
         return frameCount.get(texname);
     }
 
+    private static final String[] CLASSIC_SPINNER_TEXTURES = {"spinner-background", "spinner-circle", "spinner-metre"};
+    private static final String[] MODERN_SPINNER_TEXTURES = {"spinner-top", "spinner-bottom", "spinner-middle", "spinner-middle2", "spinner-glow"};
+
     /**
-     * Whether the active skin (beatmap skin first, then the selected skin) only ships osu!stable style spinner
-     * textures (spinner-background, spinner-circle, ...) and not the modern ones (spinner-top, spinner-bottom, ...).
-     * In that case the modern spinner would silently ignore the skin and show the default assets.
+     * Whether the active skin (beatmap skin first, then the selected skin) draws the osu!stable style spinner
+     * (spinner-circle, spinner-metre, ...) and not the modern one (spinner-top, spinner-middle, ...).
+     * <p>
+     * Skins commonly ship both sets and hide the unused one with 1x1 transparent images, so only textures that are
+     * actually visible are taken into account. The modern spinner would otherwise ignore the skin or be invisible.
      */
     public boolean isClassicSpinnerSkin() {
         if (BeatmapSkinManager.isSkinEnabled()) {
-            boolean beatmapClassic = customTextures.containsKey("spinner-background") || customTextures.containsKey("spinner-circle");
-            boolean beatmapModern = customTextures.containsKey("spinner-top") || customTextures.containsKey("spinner-bottom");
+            boolean beatmapClassic = hasUsableCustomTexture(CLASSIC_SPINNER_TEXTURES);
+            boolean beatmapModern = hasUsableCustomTexture(MODERN_SPINNER_TEXTURES);
 
             if (beatmapClassic || beatmapModern) {
                 return beatmapClassic && !beatmapModern;
@@ -929,10 +935,32 @@ public class ResourceManager {
         }
 
         var skinFolder = new File(Config.getSkinPath());
-        boolean classic = new File(skinFolder, "spinner-background.png").length() > 0 || new File(skinFolder, "spinner-circle.png").length() > 0;
-        boolean modern = new File(skinFolder, "spinner-top.png").length() > 0 || new File(skinFolder, "spinner-bottom.png").length() > 0;
+        boolean classic = hasUsableSkinFile(skinFolder, CLASSIC_SPINNER_TEXTURES);
+        boolean modern = hasUsableSkinFile(skinFolder, MODERN_SPINNER_TEXTURES);
 
         return classic && !modern;
+    }
+
+    private boolean hasUsableCustomTexture(String[] names) {
+        for (var name : names) {
+            var region = customTextures.get(name);
+
+            if (region != null && region.getWidth() > 1 && region.getHeight() > 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean hasUsableSkinFile(File folder, String[] names) {
+        for (var name : names) {
+            if (SkinTextureUtils.isUsableTexture(new File(folder, name + ".png"))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void checkSpinnerTextures() {

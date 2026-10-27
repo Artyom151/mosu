@@ -32,6 +32,8 @@ public class GameplaySpinner extends GameObject {
     private final UISprite metre;
     private final int metreRegionOriginalHeight;
     private float metreY;
+    private final float metreAreaWidth;
+    private final float metreAreaHeight;
     private final UISprite spinText;
     private final TextureRegion metreRegion;
     private final UISprite clearText;
@@ -66,7 +68,6 @@ public class GameplaySpinner extends GameObject {
         background.setOrigin(Anchor.Center);
         background.setPosition(position.x, position.y);
         background.setTextureRegion(ResourceManager.getInstance().getTexture("spinner-background"));
-        background.setScale(Config.getRES_WIDTH() / background.getWidth());
 
         circle = new UISprite();
         circle.setOrigin(Anchor.Center);
@@ -76,12 +77,23 @@ public class GameplaySpinner extends GameObject {
         metreRegion = ResourceManager.getInstance().getTexture("spinner-metre").deepCopy();
         metreRegionOriginalHeight = metreRegion.getHeight();
 
+        // Skins may hide the background with a 1x1 transparent image. In that case the area the metre fills is
+        // derived from the metre texture itself instead of the (meaningless) background size.
+        boolean hasBackground = background.getWidth() > 1 && background.getHeight() > 1;
+        float referenceWidth = hasBackground ? background.getWidth() : metreRegion.getWidth();
+        float referenceHeight = hasBackground ? background.getHeight() : metreRegion.getHeight();
+        float areaScale = Config.getRES_WIDTH() / referenceWidth;
+
+        metreAreaWidth = referenceWidth * areaScale;
+        metreAreaHeight = referenceHeight * areaScale;
+        background.setScale(hasBackground ? areaScale : 1f);
+
         metre = new UISprite();
         metre.setScaleType(ScaleType.Stretch);
-        metre.setPosition(background.getX() - background.getWidthScaled() / 2f, position.y);
+        metre.setPosition(position.x - metreAreaWidth / 2f, position.y);
         metre.setTextureRegion(metreRegion);
-        metre.setWidth(background.getWidthScaled());
-        metre.setHeight(background.getHeightScaled());
+        metre.setWidth(metreAreaWidth);
+        metre.setHeight(metreAreaHeight);
 
         approachCircle = new UISprite();
         approachCircle.setOrigin(Anchor.Center);
@@ -169,8 +181,8 @@ public class GameplaySpinner extends GameObject {
         circle.setAlpha(0);
         circle.beginAbsoluteSequence(fadeInStartTime, sequence -> sequence.fadeIn(fadeDuration));
 
-        metreY = background.getY() - background.getHeightScaled() / 2f;
-        metre.setY(background.getY() + background.getHeightScaled() / 2f);
+        metreY = position.y - metreAreaHeight / 2f;
+        metre.setY(position.y + metreAreaHeight / 2f);
 
         metre.setAlpha(0);
         metre.beginAbsoluteSequence(fadeInStartTime, sequence -> sequence.fadeIn(fadeDuration));
@@ -400,8 +412,8 @@ public class GameplaySpinner extends GameObject {
 
             float fillOffset = 1 - Math.min(1, Math.abs(percentfill));
 
-            metre.setHeight(background.getHeightScaled() * Math.min(1, Math.abs(percentfill)));
-            metre.setPosition(metre.getX(), metreY + background.getHeightScaled() * fillOffset);
+            metre.setHeight(metreAreaHeight * Math.min(1, Math.abs(percentfill)));
+            metre.setPosition(metre.getX(), metreY + metreAreaHeight * fillOffset);
 
             metreRegion.setHeight((int) (metreRegionOriginalHeight * Math.min(1, Math.abs(percentfill))));
             metreRegion.setTexturePosition(0, (int) (metreRegionOriginalHeight * fillOffset));
