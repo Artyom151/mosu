@@ -1,6 +1,6 @@
 package com.osudroid
 
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig
+import app.mosu.BuildConfig
 
 object BuildSettings {
 

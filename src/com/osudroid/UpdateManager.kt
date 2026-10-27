@@ -12,7 +12,7 @@ import ru.nsu.ccfit.zuev.osu.*
 import ru.nsu.ccfit.zuev.osu.Config
 import ru.nsu.ccfit.zuev.osu.helper.*
 import ru.nsu.ccfit.zuev.osu.online.*
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig
+import app.mosu.BuildConfig
 import java.io.*
 
 object UpdateManager: IFileRequestObserver

@@ -26,7 +26,7 @@ import ru.nsu.ccfit.zuev.osu.*
 import ru.nsu.ccfit.zuev.osu.helper.StringTable
 import ru.nsu.ccfit.zuev.osu.menu.IFilterMenu
 import ru.nsu.ccfit.zuev.osu.menu.SongMenu
-import ru.nsu.ccfit.zuev.osuplus.R
+import app.mosu.R
 import ru.nsu.ccfit.zuev.osu.GlobalManager.getInstance as getGlobal
 
 class SearchBarFragment : BaseFragment(), IFilterMenu {

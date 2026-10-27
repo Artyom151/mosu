@@ -77,7 +77,7 @@ import ru.nsu.ccfit.zuev.osu.online.OnlineScoring;
 import ru.nsu.ccfit.zuev.osu.scoring.Replay;
 import ru.nsu.ccfit.zuev.osu.scoring.ScoringScene;
 import ru.nsu.ccfit.zuev.osu.scoring.StatisticV2;
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig;
+import app.mosu.BuildConfig;
 
 /**
  * Created by Fuuko on 2015/4/24.
@@ -188,7 +188,7 @@ public class MainScene implements IUpdateHandler {
         UIBox box = new UIBox() {
 
             {
-                Text versionText = new Text(10f, 2f, ResourceManager.getInstance().getFont("smallFont"), "osu!droid " + BuildConfig.VERSION_NAME);
+                Text versionText = new Text(10f, 2f, ResourceManager.getInstance().getFont("smallFont"), "mosu " + BuildConfig.VERSION_NAME);
                 attachChild(versionText);
 
                 setSize(versionText.getWidth() + 20f, versionText.getHeight() + 4f);
@@ -202,9 +202,9 @@ public class MainScene implements IUpdateHandler {
                     new HorizontalMessageDialog()
                         .setTitle("About")
                         .setMessage(
-                                "<h1>osu!droid</h1>\n" +
+                                "<h1>mosu</h1>\n" +
                                 "<h5>Version " + BuildConfig.VERSION_NAME + "</h5>\n" +
-                                "<p>Made by osu!droid team<br>osu! is © peppy 2007-2026</p>\n" +
+                                "<p>mosu (mobile osu) is a fork of osu!droid.<br>Based on the work of the osu!droid team<br>osu! is © peppy 2007-2026</p>\n" +
                                 "<br>\n" +
                                 "<a href=\"https://osu.ppy.sh\">Visit official osu! website ↗</a>\n" +
                                 "<br>\n" +

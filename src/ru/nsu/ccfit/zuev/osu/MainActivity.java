@@ -98,7 +98,7 @@ import ru.nsu.ccfit.zuev.osu.helper.StringTable;
 import ru.nsu.ccfit.zuev.osu.menu.LoadingScreen;
 import ru.nsu.ccfit.zuev.osu.menu.SplashScene;
 import ru.nsu.ccfit.zuev.osu.online.OnlineManager;
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig;
+import app.mosu.BuildConfig;
 
 public class MainActivity extends BaseGameActivity implements
         IAccelerometerListener {
@@ -1130,7 +1130,7 @@ public class MainActivity extends BaseGameActivity implements
         } else {
             Intent grantPermission = new Intent(this, PermissionActivity.class);
             startActivity(grantPermission);
-            overridePendingTransition(ru.nsu.ccfit.zuev.osuplus.R.anim.fast_activity_swap, ru.nsu.ccfit.zuev.osuplus.R.anim.fast_activity_swap);
+            overridePendingTransition(app.mosu.R.anim.fast_activity_swap, app.mosu.R.anim.fast_activity_swap);
             finish();
             return false;
         }

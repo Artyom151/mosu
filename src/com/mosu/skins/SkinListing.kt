@@ -22,7 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.nsu.ccfit.zuev.osu.ToastLogger
-import ru.nsu.ccfit.zuev.osuplus.R
+import app.mosu.R
 
 /**
  * Skin catalog (osuskins.net) with previews and a wavy-progress download flow.

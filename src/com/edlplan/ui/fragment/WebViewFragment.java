@@ -16,7 +16,7 @@ import com.edlplan.ui.BaseAnimationListener;
 import com.edlplan.ui.EasingHelper;
 
 import ru.nsu.ccfit.zuev.osu.online.OnlineManager;
-import ru.nsu.ccfit.zuev.osuplus.R;
+import app.mosu.R;
 
 public class WebViewFragment extends BaseFragment {
 

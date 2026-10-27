@@ -19,7 +19,7 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.HashMap;
 
 import ru.nsu.ccfit.zuev.osu.MainActivity;
-import ru.nsu.ccfit.zuev.osuplus.R;
+import app.mosu.R;
 import ru.nsu.ccfit.zuev.osu.helper.MD5Calculator;
 import ru.nsu.ccfit.zuev.osu.online.OnlineFileOperator;
 
@@ -38,7 +38,7 @@ public class PushNotificationService extends FirebaseMessagingService {
             Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
             String title = data.get("title");
-            if(title == null) title = "osu!droid";
+            if(title == null) title = "mosu";
             String message = data.get("message");
             if(message == null) message = "error";
             String url = data.get("url");
@@ -81,9 +81,9 @@ public class PushNotificationService extends FirebaseMessagingService {
 
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel(channelId,
-                    "osu!droid Push Notfications",
+                    "mosu push notifications",
                     NotificationManager.IMPORTANCE_DEFAULT);
-                channel.setDescription("osu!droid Push Notfications");
+                channel.setDescription("mosu push notifications");
                 notificationManager.createNotificationChannel(channel);
             }
 

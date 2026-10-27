@@ -59,7 +59,7 @@ import ru.nsu.ccfit.zuev.osu.game.GameScene;
 import ru.nsu.ccfit.zuev.osu.menu.SongMenu;
 import ru.nsu.ccfit.zuev.osu.online.OnlineManager;
 import ru.nsu.ccfit.zuev.osu.online.OnlineScoring;
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig;
+import app.mosu.BuildConfig;
 
 public class ScoringScene {
     private final Engine engine;

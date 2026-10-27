@@ -4,7 +4,7 @@ import android.util.Log
 import okhttp3.internal.toImmutableMap
 import okio.buffer
 import okio.source
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig
+import app.mosu.BuildConfig
 import java.io.Closeable
 import java.io.File
 import java.io.IOException

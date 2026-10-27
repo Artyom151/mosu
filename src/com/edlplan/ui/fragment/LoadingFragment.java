@@ -7,7 +7,7 @@ import com.edlplan.framework.easing.Easing;
 import com.edlplan.ui.BaseAnimationListener;
 import com.edlplan.ui.EasingHelper;
 
-import ru.nsu.ccfit.zuev.osuplus.R;
+import app.mosu.R;
 
 public class LoadingFragment extends BaseFragment {
 

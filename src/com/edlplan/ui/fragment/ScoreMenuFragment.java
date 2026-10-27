@@ -24,8 +24,8 @@ import java.io.File;
 import java.util.Locale;
 
 import ru.nsu.ccfit.zuev.osu.GlobalManager;
-import ru.nsu.ccfit.zuev.osuplus.BuildConfig;
-import ru.nsu.ccfit.zuev.osuplus.R;
+import app.mosu.BuildConfig;
+import app.mosu.R;
 
 public class ScoreMenuFragment extends BaseFragment {
 

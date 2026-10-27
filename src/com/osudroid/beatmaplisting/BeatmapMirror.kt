@@ -9,7 +9,7 @@ import com.osudroid.beatmaplisting.mirrors.OsuDirectDownloadRequestModel
 import com.osudroid.beatmaplisting.mirrors.OsuDirectPreviewRequestModel
 import com.osudroid.beatmaplisting.mirrors.OsuDirectSearchRequestModel
 import com.osudroid.beatmaplisting.mirrors.OsuDirectSearchResponseModel
-import ru.nsu.ccfit.zuev.osuplus.R
+import app.mosu.R
 
 /**
  * Defines a beatmap mirror API and its actions.

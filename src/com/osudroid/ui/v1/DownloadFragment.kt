@@ -10,7 +10,7 @@ import com.mosu.ui.components.DownloadCard
 import com.mosu.ui.components.DownloadUiState
 import com.mosu.ui.theme.MosuTheme
 import com.reco1l.framework.net.FileRequest
-import ru.nsu.ccfit.zuev.osuplus.R
+import app.mosu.R
 
 /**
  * Overlay showing the progress of a download using Material 3 Expressive indicators.
