@@ -5,7 +5,7 @@
     android:id="@+id/root_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#13131A">
+    android:background="@color/settings_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +17,7 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#1E1E2E">
+            android:background="@color/settings_toolbar">
 
             <ImageButton
                 style="@style/button_borderless"
@@ -27,7 +27,7 @@
                 android:layout_centerVertical="true"
                 android:padding="16dp"
                 android:src="@drawable/arrow_back_24px"
-                app:tint="#FFF" />
+                app:tint="@color/settings_text" />
 
         </RelativeLayout>
 
@@ -38,19 +38,10 @@
             android:orientation="horizontal"
             android:paddingHorizontal="32dp">
 
-            <ScrollView
-                android:id="@+id/scrollview"
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/section_selector"
                 android:layout_width="wrap_content"
-                android:scrollbarThumbVertical="@null"
-                android:layout_height="match_parent">
-
-                <LinearLayout
-                    android:id="@+id/section_selector"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"/>
-
-            </ScrollView>
+                android:layout_height="match_parent" />
 
             <FrameLayout
                 android:id="@android:id/list_container"

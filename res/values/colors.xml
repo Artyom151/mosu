@@ -7,4 +7,13 @@
     <color name="frgBodyBackgroundLight">#EFFFFFFF</color>
     <color name="frgBodyBackgroundDark">#72000000</color>
     <color name="triangleBackground">#DDFD7CB5</color>
+
+    <!-- Settings palette. Overridden with the system (Material You) palette on Android 12+, see values-v31. -->
+    <color name="settings_background">#13131A</color>
+    <color name="settings_toolbar">#1E1E2E</color>
+    <color name="settings_row">#161622</color>
+    <color name="settings_category_text">#B2B2CC</color>
+    <color name="settings_text">#FFFFFF</color>
+    <color name="settings_text_secondary">#B2B2CC</color>
+    <color name="settings_selected">#363653</color>
 </resources>

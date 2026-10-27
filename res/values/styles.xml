@@ -153,14 +153,14 @@
         <item name="android:paddingBottom">18dp</item>
         <item name="android:paddingLeft">18dp</item>
         <item name="android:paddingRight">18dp</item>
-        <item name="android:background">#161622</item>
+        <item name="android:background">@color/settings_row</item>
         <item name="android:foreground">@drawable/ripple</item>
         <item name="android:gravity">center</item>
     </style>
 
     <style name="settings_row_bottom" parent="settings_row">
         <item name="android:background">@drawable/rounded_half_bottom</item>
-        <item name="android:backgroundTint">#161622</item>
+        <item name="android:backgroundTint">@color/settings_row</item>
     </style>
 
     <style name="settings_row_title">
@@ -168,14 +168,14 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">14sp</item>
-        <item name="android:textColor">#FFF</item>
+        <item name="android:textColor">@color/settings_text</item>
     </style>
 
     <style name="settings_row_summary" parent="settings_row_title">
         <item name="android:id">@android:id/summary</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textColor">#FFB2B2CC</item>
+        <item name="android:textColor">@color/settings_text_secondary</item>
     </style>
 
     <style name="settings_row_seekbar" parent="seekbar">
@@ -191,7 +191,7 @@
         <item name="android:gravity">center</item>
         <item name="android:paddingTop">4dp</item>
         <item name="android:paddingBottom">4dp</item>
-        <item name="android:textColor">#FFB2B2CC</item>
+        <item name="android:textColor">@color/settings_category_text</item>
         <item name="android:textSize">12sp</item>
     </style>
 

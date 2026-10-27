@@ -19,6 +19,15 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.XmlRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.mosu.ui.settings.SettingsRail
+import com.mosu.ui.settings.SettingsRailEntry
+import com.mosu.ui.theme.MosuTheme
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.getSystemService
 import androidx.core.os.LocaleListCompat
@@ -79,7 +88,7 @@ import ru.nsu.ccfit.zuev.skins.BeatmapSkinManager
 class SettingsFragment : SettingsFragment() {
 
 
-    private lateinit var sectionSelector: LinearLayout
+    private lateinit var sectionSelector: ComposeView
 
 
     private var section = when {
@@ -149,87 +158,70 @@ class SettingsFragment : SettingsFragment() {
     override fun onLoadView() {
 
         sectionSelector = findViewById(R.id.section_selector)!!
-        sectionSelector.removeAllViews()
 
-        fun createSectionButton(text: String, icon: Int, section: Section) {
+        val entries = buildList {
 
-            val button = TextView(ContextThemeWrapper(context, R.style.settings_tab_text))
+            fun add(text: String, icon: Int, section: Section) {
+                add(SettingsRailEntry.Item(section, text, icon))
+            }
 
-            button.cornerRadius = 15f.dp
-            button.layoutWidth = 200.dp
-            button.text = text
-            button.drawableLeft = requireContext().getDrawable(icon)!!
-            button.drawableLeft!!.setTint(Color.WHITE)
+            if (Multiplayer.isMultiplayer) {
+                add(SettingsRailEntry.Header("Multiplayer"))
+                add("Player", R.drawable.person_24px, Section.Player)
 
-            button.setOnClickListener {
+                if (Multiplayer.isRoomHost)
+                    add("Room", R.drawable.groups_24px, Section.Room)
 
-                // Workaround to IllegalStateException being thrown when an EditText is focused
-                // while trying to change section.
-                root!!.findFocus()?.clearFocus()
+                add(SettingsRailEntry.Header("Game"))
+            } else {
+                add("General", R.drawable.grid_view_24px, Section.General)
+            }
 
-                sectionSelector.forEach {
-                    it.setBackgroundColor(if (it == button) 0xFF363653.toInt() else Color.TRANSPARENT)
+            add("Gameplay", R.drawable.videogame_asset_24px, Section.Gameplay)
+            add("Graphics", R.drawable.display_settings_24px, Section.Graphics)
+            add("Audio", R.drawable.headphones_24px, Section.Audio)
+
+            if (!Multiplayer.isMultiplayer) {
+                add("Library", R.drawable.library_music_24px, Section.Library)
+            }
+
+            add("Input", R.drawable.trackpad_input_24px, Section.Input)
+            add("Advanced", R.drawable.manufacturing_24px, Section.Advanced)
+        }
+
+        sectionSelector.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        sectionSelector.setContent {
+
+            var selected by remember { mutableStateOf(section) }
+
+            MosuTheme(darkTheme = true) {
+                SettingsRail(entries, selected) {
+                    selected = it
+                    changeSection(it)
                 }
-
-                this.section = section
-
-                // Older SDKs may potentially throw an IllegalStateException when trying to change
-                // preference screen, so we need to remove all views first to prevent that.
-                listView.removeAllViews()
-                setPreferencesFromResource(section.xml, null)
-            }
-
-            sectionSelector.addView(button)
-
-            if (this.section == section) {
-                button.callOnClick()
             }
         }
 
-
-        if (Multiplayer.isMultiplayer) {
-
-            fun createDivider(text: String) {
-
-                val divider = TextView(ContextThemeWrapper(context, R.style.settings_tab_divider))
-                divider.text = text
-
-                sectionSelector.addView(divider)
-            }
-
-            createDivider("Multiplayer")
-            createSectionButton("Player", R.drawable.person_24px, Section.Player)
-
-            if (Multiplayer.isRoomHost)
-                createSectionButton("Room", R.drawable.groups_24px, Section.Room)
-
-            createDivider("Game")
-
-        }
-
-
-        if (!Multiplayer.isMultiplayer) {
-            createSectionButton("General", R.drawable.grid_view_24px, Section.General)
-        }
-
-        createSectionButton("Gameplay", R.drawable.videogame_asset_24px, Section.Gameplay)
-        createSectionButton("Graphics", R.drawable.display_settings_24px, Section.Graphics)
-        createSectionButton("Audio", R.drawable.headphones_24px, Section.Audio)
-
-        if (!Multiplayer.isMultiplayer) {
-            createSectionButton("Library", R.drawable.library_music_24px, Section.Library)
-        }
-
-        createSectionButton("Input", R.drawable.trackpad_input_24px, Section.Input)
-        createSectionButton("Advanced", R.drawable.manufacturing_24px, Section.Advanced)
-
-
-        sectionSelector[0].topMargin = 32.dp
-        sectionSelector[sectionSelector.childCount - 1].bottomMargin = 32.dp
+        changeSection(section)
 
         findViewById<View>(R.id.close)!!.setOnClickListener {
             dismiss()
         }
+    }
+
+
+    private fun changeSection(section: Section) {
+
+        // Workaround to IllegalStateException being thrown when an EditText is focused
+        // while trying to change section.
+        root!!.findFocus()?.clearFocus()
+
+        this.section = section
+
+        // Older SDKs may potentially throw an IllegalStateException when trying to change
+        // preference screen, so we need to remove all views first to prevent that.
+        listView.removeAllViews()
+        setPreferencesFromResource(section.xml, null)
     }
 
 

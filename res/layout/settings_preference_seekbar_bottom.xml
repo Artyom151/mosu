@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/settings_row"
     android:background="@drawable/rounded_half_bottom"
-    android:backgroundTint="#161622"
+    android:backgroundTint="@color/settings_row"
     android:orientation="vertical"
     android:paddingHorizontal="0dp">
 
