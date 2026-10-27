@@ -913,9 +913,31 @@ public class ResourceManager {
         return frameCount.get(texname);
     }
 
+    /**
+     * Whether the active skin (beatmap skin first, then the selected skin) only ships osu!stable style spinner
+     * textures (spinner-background, spinner-circle, ...) and not the modern ones (spinner-top, spinner-bottom, ...).
+     * In that case the modern spinner would silently ignore the skin and show the default assets.
+     */
+    public boolean isClassicSpinnerSkin() {
+        if (BeatmapSkinManager.isSkinEnabled()) {
+            boolean beatmapClassic = customTextures.containsKey("spinner-background") || customTextures.containsKey("spinner-circle");
+            boolean beatmapModern = customTextures.containsKey("spinner-top") || customTextures.containsKey("spinner-bottom");
+
+            if (beatmapClassic || beatmapModern) {
+                return beatmapClassic && !beatmapModern;
+            }
+        }
+
+        var skinFolder = new File(Config.getSkinPath());
+        boolean classic = new File(skinFolder, "spinner-background.png").length() > 0 || new File(skinFolder, "spinner-circle.png").length() > 0;
+        boolean modern = new File(skinFolder, "spinner-top.png").length() > 0 || new File(skinFolder, "spinner-bottom.png").length() > 0;
+
+        return classic && !modern;
+    }
+
     public void checkSpinnerTextures() {
         final String[] names = {"spinner-background", "spinner-circle",
-                "spinner-metre", "spinner-approachcircle", "spinner-spin"};
+                "spinner-metre", "spinner-approachcircle", "spinner-spin", "spinner-clear"};
         for (final String s : names) {
             TextureRegion tex = textures.get(s);
             if (tex != null && tex.getTexture() != null && !tex.getTexture().isLoadedToHardware()) {

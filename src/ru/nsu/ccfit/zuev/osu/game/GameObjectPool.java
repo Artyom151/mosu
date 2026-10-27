@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import ru.nsu.ccfit.zuev.osu.Config;
+import ru.nsu.ccfit.zuev.osu.ResourceManager;
 
 public class GameObjectPool {
     public static GameObjectPool instance = new GameObjectPool();
@@ -34,13 +35,25 @@ public class GameObjectPool {
     }
 
     public GameplaySpinner getSpinner() {
-        if (!spinners.isEmpty()) {
-            return spinners.poll();
+        boolean modern = useModernSpinner();
+
+        for (var it = spinners.iterator(); it.hasNext(); ) {
+            var spinner = it.next();
+
+            if ((spinner instanceof GameplayModernSpinner) == modern) {
+                it.remove();
+                return spinner;
+            }
         }
 
         objectsCreated++;
 
-        return Config.getSpinnerStyle() == 1 ? new GameplayModernSpinner() : new GameplaySpinner();
+        return modern ? new GameplayModernSpinner() : new GameplaySpinner();
+    }
+
+    private static boolean useModernSpinner() {
+        // Skins that only provide osu!stable spinner textures would be ignored by the modern spinner.
+        return Config.getSpinnerStyle() == 1 && !ResourceManager.getInstance().isClassicSpinnerSkin();
     }
 
     public void putSpinner(final GameplaySpinner spinner) {
@@ -98,7 +111,7 @@ public class GameObjectPool {
             putSlider(new GameplaySlider());
         }
         for (int i = 0; i < 3; i++) {
-            putSpinner(Config.getSpinnerStyle() == 1 ? new GameplayModernSpinner() : new GameplaySpinner());
+            putSpinner(useModernSpinner() ? new GameplayModernSpinner() : new GameplaySpinner());
         }
 
         objectsCreated = circles.size() + sliders.size() + spinners.size();
