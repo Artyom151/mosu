@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,7 +44,7 @@ data class DownloadUiState(
 
 /**
  * Material 3 Expressive download card: a morphing [LoadingIndicator] while there is no measurable progress and a
- * wavy progress indicator while data is being transferred.
+ * circular wavy progress indicator while data is being transferred.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -85,13 +84,6 @@ fun DownloadCard(state: DownloadUiState, onCancel: () -> Unit, modifier: Modifie
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-
-            if (state.phase == DownloadPhase.Downloading) {
-                LinearWavyProgressIndicator(
-                    progress = { state.progress.coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
 
             val subtitle = listOf(state.message, state.speed).filter { it.isNotEmpty() }.joinToString(" • ")
 

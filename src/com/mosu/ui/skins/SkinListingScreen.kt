@@ -1,6 +1,7 @@
 package com.mosu.ui.skins
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -15,7 +16,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -48,6 +51,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,10 +80,13 @@ class SkinListingState {
     var selected by mutableStateOf<SkinListItem?>(null)
     var web by mutableStateOf<SkinListItem?>(null)
     var download by mutableStateOf<DownloadUiState?>(null)
+
+    /** Whether the captcha widget is displayed in the verification WebView. */
+    var webReady by mutableStateOf(false)
     val items = mutableStateListOf<SkinListItem>()
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, FlowPreview::class)
 @Composable
 fun SkinListingScreen(
     state: SkinListingState,
@@ -106,6 +115,7 @@ fun SkinListingScreen(
                 singleLine = true,
                 placeholder = { Text("Search skins") },
                 leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                trailingIcon = { IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, contentDescription = "Search") } },
                 shape = MaterialTheme.shapes.extraLarge,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSearch() }),
@@ -119,6 +129,11 @@ fun SkinListingScreen(
                         label = { Text(sort.name) },
                     )
                 }
+            }
+
+            // Search while typing, shortly after the user stops.
+            LaunchedEffect(Unit) {
+                snapshotFlow { state.query }.drop(1).debounce(500).collect { onSearch() }
             }
 
             val gridState = rememberLazyGridState()
@@ -151,6 +166,10 @@ fun SkinListingScreen(
                     LoadingIndicator(Modifier.align(Alignment.BottomCenter).padding(16.dp).size(48.dp))
                 }
 
+                if (!state.failed && state.items.isEmpty() && !state.loading) {
+                    Text("No skins found", style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Center))
+                }
+
                 if (state.failed && state.items.isEmpty() && !state.loading) {
                     Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Couldn't load skins", style = MaterialTheme.typography.titleMedium)
@@ -170,7 +189,7 @@ fun SkinListingScreen(
         }
 
         state.web?.let { item ->
-            SkinWebPage(item, onBack = { state.web = null }, onDownload = { url, ua -> onWebDownload(item, url, ua) })
+            SkinVerifyDialog(item, state, onClose = { state.web = null }, onDownload = { url, ua -> onWebDownload(item, url, ua) })
         }
 
         state.download?.let { download ->
@@ -247,43 +266,99 @@ private fun SkinPreview(item: SkinListItem, onDownload: () -> Unit, onClose: () 
 }
 
 /**
- * Shows the skin page. Downloads are protected by a captcha, so the user starts the download here and the file is
- * intercepted by the WebView's download listener.
+ * Hides everything on the download page except the captcha widget and the countdown message.
  */
+private const val VERIFY_PAGE_JS = """
+(function () {
+  var s = document.createElement('style');
+  s.textContent = 'html,body{background:#1c1b1f!important}body *{visibility:hidden!important}' +
+    '.cf-turnstile,.cf-turnstile *,#waitSection,#waitSection *{visibility:visible!important}' +
+    '.cf-turnstile{position:fixed!important;top:16px;left:8px;right:8px;margin:0!important}' +
+    '#waitSection{position:fixed!important;top:100px;left:0;right:0;color:#fff;text-align:center;font-size:16px}';
+  document.head.appendChild(s);
+})();
+"""
+
+/**
+ * Walks the site's download flow for the user: opens the skin page, submits its download form and shows only the
+ * Cloudflare confirmation. Once the user confirms it, the site starts the download by itself (after a short
+ * countdown) and the file is intercepted by the WebView's download listener.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun SkinWebPage(item: SkinListItem, onBack: () -> Unit, onDownload: (url: String, userAgent: String) -> Unit) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
-            Column(Modifier.weight(1f)) {
-                Text(item.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+private fun SkinVerifyDialog(item: SkinListItem, state: SkinListingState, onClose: () -> Unit, onDownload: (url: String, userAgent: String) -> Unit) {
+
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(enabled = false) {},
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(modifier = Modifier.padding(16.dp).widthIn(max = 420.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                Text("Confirm you're human", style = MaterialTheme.typography.titleLarge)
+                Text(item.name, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+                Box(
+                    Modifier.fillMaxWidth().height(150.dp).clip(MaterialTheme.shapes.large)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val submitted = remember(item.id) { booleanArrayOf(false) }
+
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            WebView(context).apply {
+                                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+
+                                webViewClient = object : WebViewClient() {
+
+                                    // Only the skin site and its captcha provider may be opened.
+                                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) =
+                                        request.url.scheme != "https" || !OsuSkinsClient.isTrustedHost(request.url.host)
+
+                                    override fun onPageFinished(view: WebView, url: String?) {
+                                        val path = url?.let { Uri.parse(it).path }.orEmpty()
+
+                                        when {
+                                            path == "/skin/${item.id}" && !submitted[0] -> {
+                                                submitted[0] = true
+                                                view.evaluateJavascript("document.getElementById('downloadForm').submit();", null)
+                                            }
+
+                                            path == "/skin/${item.id}/download" -> {
+                                                view.evaluateJavascript(VERIFY_PAGE_JS, null)
+                                                state.webReady = true
+                                            }
+                                        }
+                                    }
+                                }
+
+                                setDownloadListener { url, userAgent, _, _, _ -> onDownload(url, userAgent) }
+                                loadUrl(item.pageUrl)
+                            }
+                        },
+                        onRelease = { it.stopLoading(); it.destroy() },
+                    )
+
+                    if (!state.webReady) {
+                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+                            LoadingIndicator(Modifier.size(48.dp))
+                        }
+                    }
+                }
+
                 Text(
-                    "Complete the captcha and tap download on the page",
+                    "Tap the checkbox. The download starts automatically.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
         }
-
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                WebView(context).apply {
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-
-                    webViewClient = object : WebViewClient() {
-                        // Only the skin site and its captcha provider may be opened.
-                        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) =
-                            request.url.scheme != "https" || !OsuSkinsClient.isTrustedHost(request.url.host)
-                    }
-
-                    setDownloadListener { url, userAgent, _, _, _ -> onDownload(url, userAgent) }
-                    loadUrl(item.pageUrl)
-                }
-            },
-            onRelease = { it.stopLoading(); it.destroy() },
-        )
     }
 }

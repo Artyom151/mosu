@@ -58,7 +58,7 @@ class SkinListing : BaseFragment() {
                     onSearch = { search(reset = true) },
                     onLoadMore = { search(reset = false) },
                     onImportFile = { filePicker.launch("*/*") },
-                    onOpenWeb = { state.web = it },
+                    onOpenWeb = { state.webReady = false; state.web = it },
                     onWebDownload = ::startDownload,
                     onCancelDownload = ::cancelDownload,
                 )
@@ -110,6 +110,8 @@ class SkinListing : BaseFragment() {
     private fun startDownload(item: SkinListItem, url: String, userAgent: String) {
 
         if (downloadJob?.isActive == true) return
+
+        state.web = null
 
         val file = File(requireContext().cacheDir, "${SkinInstaller.sanitizeName(item.name)}.osk")
 
