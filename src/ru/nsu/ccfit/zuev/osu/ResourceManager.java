@@ -153,12 +153,15 @@ public class ResourceManager {
     }
 
     public void loadSkin(String folder) {
-        loadFont("smallFont", null, 21, Color.WHITE);
-        loadFont("middleFont", null, 24, Color.WHITE);
-        loadFont("bigFont", null, 36, Color.WHITE);
-        loadFont("font", null, 28, Color.WHITE);
-        loadStrokeFont("strokeFont", null, 36, Color.BLACK, Color.WHITE);
-        loadFont("CaptionFont", null, 35, Color.WHITE);
+        // Fonts don't depend on the skin; loading them again on every skin change leaked their textures.
+        if (!fonts.containsKey("font")) {
+            loadFont("smallFont", null, 21, Color.WHITE);
+            loadFont("middleFont", null, 24, Color.WHITE);
+            loadFont("bigFont", null, 36, Color.WHITE);
+            loadFont("font", null, 28, Color.WHITE);
+            loadStrokeFont("strokeFont", null, 36, Color.BLACK, Color.WHITE);
+            loadFont("CaptionFont", null, 35, Color.WHITE);
+        }
 
         if (!folder.endsWith("/"))
             folder = folder + "/";
@@ -1037,9 +1040,10 @@ public class ResourceManager {
                 "spinner-metre", "spinner-approachcircle", "spinner-spin", "spinner-clear"};
         for (final String s : names) {
             TextureRegion tex = textures.get(s);
+            // Only (re)queue the texture itself: reloadTextures() is meant for a lost GL context, with a live one it
+            // re-uploads every texture and leaks the previous copies.
             if (tex != null && tex.getTexture() != null && !tex.getTexture().isLoadedToHardware()) {
-                engine.getTextureManager().reloadTextures();
-                break;
+                engine.getTextureManager().loadTexture(tex.getTexture());
             }
         }
     }
@@ -1056,9 +1060,10 @@ public class ResourceManager {
         };
         for (final String s : names) {
             TextureRegion tex = textures.get(s);
+            // Only (re)queue the texture itself: reloadTextures() is meant for a lost GL context, with a live one it
+            // re-uploads every texture and leaks the previous copies.
             if (tex != null && tex.getTexture() != null && !tex.getTexture().isLoadedToHardware()) {
-                engine.getTextureManager().reloadTextures();
-                break;
+                engine.getTextureManager().loadTexture(tex.getTexture());
             }
         }
     }

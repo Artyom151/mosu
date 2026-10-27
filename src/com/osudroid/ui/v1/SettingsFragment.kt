@@ -705,8 +705,9 @@ class SettingsFragment : SettingsFragment() {
             // Setting the skin now so that any setting that relies on skins (i.e., the HUD editor) receives
             // the correct skin path.
             Config.setSkinPath(path)
+            // New textures are queued and uploaded on the next frame. Calling engine.onResume() here re-uploaded every
+            // texture under new GL names without deleting the old ones, leaking the whole GPU memory on each skin change.
             ResourceManager.getInstance().loadSkin(path)
-            GlobalManager.getInstance().engine.onResume()
 
             mainThread {
                 loading.dismiss()
