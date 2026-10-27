@@ -40,6 +40,8 @@ jobs:
   assemble-release:
     name: Assemble Release APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Checkout
       uses: actions/checkout@v6
@@ -56,6 +58,22 @@ jobs:
         name: mosu-release-apk
         path: build/outputs/apk/release/*.apk
         if-no-files-found: error
+
+    # Keeps a "nightly" pre-release with the APK of the latest commit on master.
+    - name: Publish nightly release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        apk=$(ls build/outputs/apk/release/*.apk | head -n 1)
+        version=$(basename "$apk" | sed -E 's/^mosu-(.*)-release\.apk$/\1/')
+
+        gh release delete nightly --yes --cleanup-tag || true
+        gh release create nightly "$apk" \
+          --target "$GITHUB_SHA" \
+          --prerelease \
+          --title "mosu $version (nightly)" \
+          --notes "Automatic build of ${GITHUB_SHA::9} from master. Install the APK on Android 7.0 or newer."
 
   unit-test:
     name: Unit Tests

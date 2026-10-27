@@ -22,8 +22,8 @@ fixes.
 
 ## Download
 
-Every push to `master` is built by [GitHub Actions](https://github.com/Artyom151/mosu/actions/workflows/android.yml).
-Open the latest successful run and download the `mosu-release-apk` artifact.
+Download the APK from the [nightly release](https://github.com/Artyom151/mosu/releases/tag/nightly). It's rebuilt by
+[GitHub Actions](https://github.com/Artyom151/mosu/actions/workflows/android.yml) on every push to `master`.
 
 mosu is installed next to osu!droid (package `app.mosu`) and uses the same `osu!droid` folder, so your beatmaps,
 skins and scores are shared between both.
