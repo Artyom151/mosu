@@ -1,48 +1,77 @@
-![osudroid](https://github.com/osudroid/osu-droid/assets/52914632/8747ab50-c77d-4808-91aa-5058891e4bcd)
+![mosu](.github/assets/banner.png)
 
-# osu-droid
-[![Official International Discord](https://discordapp.com/api/guilds/316545691545501706/widget.png?style=shield)](https://discord.gg/nyD92cE)
-[![Android](https://github.com/osudroid/osu-droid/workflows/Android/badge.svg?branch=master)](https://github.com/osudroid/osu-droid/actions?query=workflow%3A"Android")
-[![CodeFactor](https://www.codefactor.io/repository/github/osudroid/osu-droid/badge)](https://www.codefactor.io/repository/github/osudroid/osu-droid)
+# mosu
 
-osu!droid is a free-to-play circle clicking rhythm game for Android devices. It was a game hatched many years ago by the
-[osu!](https://osu.ppy.sh/home) community. This project is now being developed by a small group of fans and also with the help of foreign friends.
+[![Android](https://github.com/Artyom151/mosu/actions/workflows/android.yml/badge.svg?branch=master)](https://github.com/Artyom151/mosu/actions/workflows/android.yml)
 
-## Status
+**mosu** (mobile osu!) is a free circle clicking rhythm game for Android. It's a fork of
+[osu!droid](https://github.com/osudroid/osu-droid) with a redesigned interface, local multiplayer and quality of life
+fixes.
 
-osu!droid is under constant development. Features are constantly being added and bugs are constantly being fixed, but
-it's playable and fun!
+## Features
 
-### Downloading the source code
+- **Material 3 Expressive design.** Settings, downloads and new screens are built with Jetpack Compose and follow your
+  wallpaper colors (Material You) on Android 12 and newer.
+- **LAN multiplayer.** Host a room on your phone and play with friends on the same Wi-Fi or on your hotspot, no account
+  needed. Rooms are found automatically, or joined by IP address. Players missing the beatmap can download it from the
+  host in one tap.
+- **Skin downloader.** Browse skins with previews and install them without leaving the game.
+- **Beatmap downloads** with live progress, speed and time left.
+- **Fixes**, including spinners missing with osu!stable skins and memory issues that got the game closed on recent
+  devices.
 
-Clone the repository:
+## Download
+
+Every push to `master` is built by [GitHub Actions](https://github.com/Artyom151/mosu/actions/workflows/android.yml).
+Open the latest successful run and download the `mosu-release-apk` artifact.
+
+mosu is installed next to osu!droid (package `app.mosu`) and uses the same `osu!droid` folder, so your beatmaps,
+skins and scores are shared between both.
+
+## Building
+
+Requirements: Java 17, the Android SDK and NDK 22.1.7171670.
 
 ```sh
-git clone https://github.com/osudroid/osu-droid.git
-```
-Open the folder in Android Studio.
-
-To update the source code to the latest commit, run the following command inside the `osu-droid` directory:
-
-```she
-git pull
+git clone https://github.com/Artyom151/mosu.git
+cd mosu
+ANDROID_HOME=~/Android/Sdk ./gradlew assembleRelease
 ```
 
-### Building
+The APK is written to `build/outputs/apk/release/`. You can also open the project in Android Studio.
 
-osu!droid requires Java 17 to build.
+### Signing
 
-In Android Studio, you can `Build` a debug release to test your changes. The output directory of your `.apk` is inside
-`build/output` of `osu-droid`'s directory.
+Without configuration, release builds are signed with the public debug key of the repository, which is fine for
+testing but not for publishing. Create your own key once:
 
-If you prefer the command line, and you are on Linux, run `chmod +x gradlew` and `./gradlew assembleDebug` inside the
-directory to build the debug `.apk` files.
+```sh
+./gradlew generateKeystore
+```
+
+This creates `mosu-release.jks` and stores its credentials in `local.properties` (both are ignored by git). Keep a
+backup of the keystore: updates must be signed with the same key. To check the signature of a build:
+
+```sh
+./gradlew verifyReleaseSignature
+```
+
+### Tests
+
+```sh
+./gradlew testReleaseUnitTest
+```
 
 ## Contributing
 
-We welcome any sort of contributions, as long as they're helpful. Those who aren't able to contribute code may instead
-suggest small changes like grammar fixes or report client issues via [Feature request](https://github.com/osudroid/osu-droid/issues/11) or [GitHub issues](https://github.com/osudroid/osu-droid/issues).
+Bug reports and pull requests are welcome in [issues](https://github.com/Artyom151/mosu/issues).
+
+## Credits
+
+mosu is based on [osu!droid](https://github.com/osudroid/osu-droid), made by the osu!droid team and its
+contributors. osu! is © peppy. Skins are provided by [osuskins.net](https://osuskins.net).
 
 ## License
 
-osu!droid is licensed under the [Apache-2.0](https://opensource.org/licenses/Apache-2.0) License. Please see the LICENSE file for more information.
+mosu is licensed under the [Apache-2.0](https://opensource.org/licenses/Apache-2.0) License, like osu!droid. See
+[LICENSE.md](LICENSE.md) for more information.
