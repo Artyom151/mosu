@@ -37,4 +37,11 @@ class OsuSkinsClientTest {
         assertFalse(OsuSkinsClient.isTrustedHost("evil-osuskins.net"))
         assertFalse(OsuSkinsClient.isTrustedHost(null))
     }
+
+    @Test
+    fun `HTML entities in names are decoded`() {
+        assertEquals("Denying's Scathach", OsuSkinsClient.decodeEntities("Denying&#039;s Scathach"))
+        assertEquals("A & B <C> \"D\"", OsuSkinsClient.decodeEntities("A &amp; B &lt;C&gt; &quot;D&quot;"))
+        assertEquals("x&#zz;", OsuSkinsClient.decodeEntities("x&#zz;"))
+    }
 }

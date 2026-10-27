@@ -31,8 +31,10 @@ object SkinDownloader {
     ) = withContext(Dispatchers.IO) {
 
         val httpUrl = url.toHttpUrlOrNull()
-        if (httpUrl == null || httpUrl.scheme != "https" || !OsuSkinsClient.isTrustedHost(httpUrl.host)) {
-            throw IOException("Untrusted download URL")
+        // The link comes from the site's captcha verification and may point to its storage on another host, so any
+        // HTTPS host is accepted. The archive is validated when it is extracted.
+        if (httpUrl == null || httpUrl.scheme != "https") {
+            throw IOException("Invalid download URL")
         }
 
         val request = Request.Builder()

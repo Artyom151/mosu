@@ -2,6 +2,7 @@ package com.mosu.ui.skins
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -42,6 +43,7 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +60,8 @@ import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
@@ -100,7 +104,17 @@ fun SkinListingScreen(
     onVerified: (SkinListItem, expectedBytes: Long) -> Unit,
     onCancelDownload: () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    // The keyboard covers the whole screen in landscape, so it is closed once a search is submitted.
+    val submitSearch = {
+        keyboard?.hide()
+        focusManager.clearFocus()
+        onSearch()
+    }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) { Box(Modifier.fillMaxSize()) {
 
         Column(Modifier.fillMaxSize()) {
 
@@ -117,17 +131,17 @@ fun SkinListingScreen(
                 singleLine = true,
                 placeholder = { Text("Search skins") },
                 leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                trailingIcon = { IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, contentDescription = "Search") } },
+                trailingIcon = { IconButton(onClick = submitSearch) { Icon(Icons.Rounded.Search, contentDescription = "Search") } },
                 shape = MaterialTheme.shapes.extraLarge,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
             )
 
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (sort in SkinSort.entries) {
                     FilterChip(
                         selected = state.sort == sort,
-                        onClick = { state.sort = sort; onSearch() },
+                        onClick = { state.sort = sort; submitSearch() },
                         label = { Text(sort.name) },
                     )
                 }
@@ -169,7 +183,7 @@ fun SkinListingScreen(
                 }
 
                 if (!state.failed && state.items.isEmpty() && !state.loading) {
-                    Text("No skins found", style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Center))
+                    Text(if (state.query.isBlank()) "No skins found" else "No skins found for \"${state.query.trim()}\"", style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Center))
                 }
 
                 if (state.failed && state.items.isEmpty() && !state.loading) {
@@ -203,7 +217,7 @@ fun SkinListingScreen(
             }
         }
     }
-}
+} }
 
 @Composable
 private fun SkinCard(item: SkinListItem, onClick: () -> Unit) {
@@ -286,6 +300,12 @@ private const val VERIFY_PAGE_JS = """
   var wait = document.getElementById('waitSection');
   if (wait) new MutationObserver(function () { if (!wait.hidden) mosu.verified(); })
     .observe(wait, { attributes: true, childList: true, subtree: true });
+
+  // After the captcha the site puts the file URL in #downloadLink and later clicks it programmatically. That click
+  // opens a new window, which the WebView blocks, so the URL is handed to the app instead.
+  var link = document.getElementById('downloadLink');
+  function report() { var h = link.getAttribute('href'); if (h && h !== '#') mosu.link(link.href); }
+  if (link) { report(); new MutationObserver(report).observe(link, { attributes: true, attributeFilter: ['href'] }); }
 })();
 """
 
@@ -356,11 +376,21 @@ private fun SkinVerifyDialog(
                                 // Bridge used by VERIFY_PAGE_JS. Only trusted pages are ever loaded in this WebView.
                                 var expectedBytes = -1L
                                 var verified = false
+                                var linkHandled = false
 
                                 addJavascriptInterface(object {
                                     @JavascriptInterface
                                     fun size(megabytes: String) {
                                         megabytes.toDoubleOrNull()?.let { expectedBytes = (it * 1024 * 1024).toLong() }
+                                    }
+
+                                    @JavascriptInterface
+                                    fun link(url: String) = post {
+                                        Log.i("SkinListing", "Download link received: $url")
+                                        if (!linkHandled) {
+                                            linkHandled = true
+                                            onDownload(url, settings.userAgentString, expectedBytes)
+                                        }
                                     }
 
                                     @JavascriptInterface
@@ -372,8 +402,12 @@ private fun SkinVerifyDialog(
                                     }
                                 }, "mosu")
 
+                                // Fallback in case the site starts the download in this window.
                                 setDownloadListener { url, userAgent, _, _, contentLength ->
-                                    onDownload(url, userAgent, if (contentLength > 0) contentLength else expectedBytes)
+                                    if (!linkHandled) {
+                                        linkHandled = true
+                                        onDownload(url, userAgent, if (contentLength > 0) contentLength else expectedBytes)
+                                    }
                                 }
                                 loadUrl(item.pageUrl)
                             }

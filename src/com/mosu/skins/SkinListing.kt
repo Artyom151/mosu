@@ -1,6 +1,7 @@
 package com.mosu.skins
 
 import android.net.Uri
+import android.util.Log
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
@@ -40,6 +41,8 @@ class SkinListing : BaseFragment() {
 
     private var searchJob: Job? = null
 
+    private var lastSearchKey: String? = null
+
     private var downloadJob: Job? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -74,7 +77,16 @@ class SkinListing : BaseFragment() {
 
     private fun search(reset: Boolean) {
 
+        Log.i("SkinListing", "search(reset=$reset, query='${state.query}', sort=${state.sort}, page=$page, loading=${state.loading}, end=$endReached)")
+
+        // Typing triggers a delayed search and the keyboard's search key triggers another one for the same query.
+        val key = "${state.query.trim()}|${state.sort}"
+        if (reset && key == lastSearchKey && !state.failed) {
+            return
+        }
+
         if (reset) {
+            lastSearchKey = key
             searchJob?.cancel()
             page = 1
             endReached = false
@@ -95,11 +107,14 @@ class SkinListing : BaseFragment() {
                 val added = result.filter { known.add(it.id) }
 
                 state.items.addAll(added)
+                Log.i("SkinListing", "Search returned ${result.size} items, ${added.size} new")
                 endReached = added.isEmpty()
                 page++
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("SkinListing", "Skin search failed (query='${state.query}', page=$page)", e)
+                ToastLogger.showText("Skin search failed: ${e.message}", true)
                 state.failed = true
             } finally {
                 state.loading = false
@@ -146,6 +161,7 @@ class SkinListing : BaseFragment() {
                 throw e
             } catch (e: Exception) {
                 file.delete()
+                Log.e("SkinListing", "Skin download failed: $url", e)
                 ToastLogger.showText("Skin download failed: ${e.message}", true)
             } finally {
                 state.download = null
@@ -215,6 +231,7 @@ class SkinListing : BaseFragment() {
     }
 
     private fun report(installedName: String?) {
+        Log.i("SkinListing", "Skin install result: $installedName")
         if (installedName != null) {
             state.web = null
             ToastLogger.showText("Skin installed: $installedName", true)

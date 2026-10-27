@@ -71,6 +71,9 @@ object OsuSkinsClient {
         val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
 
         client.newCall(request).execute().use { response ->
+            // The site answers searches without results with "Page not found".
+            if (response.code == 404) return@withContext emptyList()
+
             check(response.isSuccessful) { "HTTP ${response.code}" }
             parse(response.body!!.string())
         }
@@ -98,11 +101,31 @@ object OsuSkinsClient {
                 val id = item["url"]?.jsonPrimitive?.content?.substringAfterLast("/skin/", "") ?: continue
 
                 if (idRegex.matches(id)) {
-                    result.add(SkinListItem(id, name.trim()))
+                    result.add(SkinListItem(id, decodeEntities(name).trim()))
                 }
             }
         }
 
         return result.distinctBy { it.id }
+    }
+
+
+    private val entityRegex = Regex("&(#x[0-9a-fA-F]+|#[0-9]+|amp|lt|gt|quot|apos);")
+
+    /**
+     * Names in the JSON-LD are HTML-escaped (e.g. `Denying&#039;s Scathach`).
+     */
+    internal fun decodeEntities(text: String) = entityRegex.replace(text) { match ->
+        when (val entity = match.groupValues[1]) {
+            "amp" -> "&"
+            "lt" -> "<"
+            "gt" -> ">"
+            "quot" -> "\""
+            "apos" -> "'"
+            else -> {
+                val code = if (entity.startsWith("#x")) entity.substring(2).toIntOrNull(16) else entity.substring(1).toIntOrNull()
+                if (code != null && Character.isValidCodePoint(code)) String(Character.toChars(code)) else match.value
+            }
+        }
     }
 }
