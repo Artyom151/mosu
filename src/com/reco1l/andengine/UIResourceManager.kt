@@ -30,12 +30,15 @@ class UIResourceManager(private val context: Context) {
             return fetchedFont
         }
 
-        Log.i("UIResourceManager", "Loading font: $fontIdentifier with texture size ${GLHelper.GlMaxTextureWidth / 2}x${GLHelper.GlMaxTextureWidth / 2}")
+        // Font pages used to be half the maximum texture size. Recent GPUs report 65536, which made every font page a
+        // 32768x32768 texture (4 GB) and got the game killed by the system; fonts add pages when one is full.
+        val sideLength = (GLHelper.GlMaxTextureWidth / 2).coerceIn(256, MAX_FONT_PAGE_SIZE)
+
+        Log.i("UIResourceManager", "Loading font: $fontIdentifier with texture size ${sideLength}x${sideLength}")
 
         val typeface = Typeface.createFromAsset(context.assets, "fonts/${family}")
 
         val pageFactory = Supplier<ITexture> {
-            val sideLength = GLHelper.GlMaxTextureWidth / 2
             val page = BitmapTextureAtlas(sideLength, sideLength, TextureOptions.BILINEAR_PREMULTIPLYALPHA)
 
             UIEngine.current.textureManager.loadTexture(page)
@@ -79,4 +82,8 @@ class UIResourceManager(private val context: Context) {
         }
     }
 
+
+    private companion object {
+        const val MAX_FONT_PAGE_SIZE = 2048
+    }
 }
