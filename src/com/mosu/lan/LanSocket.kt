@@ -26,6 +26,7 @@ class LanSocket(
     private val port: Int,
     private val auth: JSONObject,
     private val onConnectFailed: (String) -> Unit = {},
+    private val onRoomInfo: (JSONObject) -> Unit = {},
 ) : Socket(null, null, null) {
 
     private val writer = Executors.newSingleThreadScheduledExecutor {
@@ -89,6 +90,7 @@ class LanSocket(
 
                 when (event) {
                     "ping" -> Unit
+                    "lanInfo" -> (args.firstOrNull() as? JSONObject)?.let(onRoomInfo)
                     "connect_error" -> {
                         fail(args.firstOrNull()?.toString() ?: "Connection refused")
                         return

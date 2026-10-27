@@ -8,7 +8,9 @@ import com.osudroid.utils.async
 import com.osudroid.utils.mainThread
 import com.osudroid.utils.updateThread
 import io.socket.client.Socket
+import java.io.File
 import kotlin.random.Random
+import ru.nsu.ccfit.zuev.osu.LibraryManager
 import org.json.JSONObject
 import ru.nsu.ccfit.zuev.osu.Config
 import ru.nsu.ccfit.zuev.osu.GlobalManager
@@ -28,10 +30,23 @@ object LanSession {
         private set
 
     private var server: LanRoomServer? = null
+    private var fileServer: LanFileServer? = null
     private var broadcaster: LanBroadcaster? = null
 
-    private var address = ""
+    /**
+     * The address of the device hosting the room.
+     */
+    var address = ""
+        private set
+
     private var port = 0
+
+    /**
+     * The port beatmaps are shared on by the device hosting the room, or 0 if unknown.
+     */
+    @Volatile
+    var filePort = 0
+        private set
 
     /**
      * Whether this device hosts the room.
@@ -68,7 +83,13 @@ object LanSession {
 
         async {
             try {
-                val server = LanRoomServer(roomName, password, maxPlayers, uid).also { it.start() }
+                val files = LanFileServer(
+                    findBeatmapSet = { md5 -> LibraryManager.findBeatmapByMD5(md5)?.let { File(it.absoluteSetDirectory) } },
+                    cacheDirectory = File(GlobalManager.getInstance().mainActivity.cacheDir, "lan"),
+                ).also { it.start() }
+                fileServer = files
+
+                val server = LanRoomServer(roomName, password, maxPlayers, uid, filePort = files.port).also { it.start() }
                 LanSession.server = server
                 broadcaster = LanBroadcaster { server.advertisement }.also { it.start() }
 
@@ -86,6 +107,7 @@ object LanSession {
     fun join(address: String, port: Int, password: String?) {
         this.address = address
         this.port = port
+        filePort = 0
         isActive = true
 
         val global = GlobalManager.getInstance()
@@ -118,6 +140,7 @@ object LanSession {
             .put("username", username)
             .put("password", password ?: "")
             .put("version", LanProtocol.VERSION),
+        onRoomInfo = { info -> filePort = info.optInt("filePort") },
         onConnectFailed = { reason ->
             // Failures after the room was joined are handled by the room scene (reconnection).
             if (Multiplayer.roomScene == null) {
@@ -149,6 +172,9 @@ object LanSession {
 
         server?.stop()
         server = null
+
+        fileServer?.stop()
+        fileServer = null
     }
 
 

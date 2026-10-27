@@ -16,6 +16,7 @@ import org.json.JSONObject
  * - `hello` (client → server): the first frame, with `{uid, username, password, version}`.
  * - `connect_error` (server → client): the connection was refused, with a human-readable reason.
  * - `disconnect` (server → client): the room was closed by the server, with a socket.io-like reason.
+ * - `lanInfo` (server → client): sent after `initialConnection`, with `{filePort}`.
  * - `ping` (both ways): keep-alive, ignored.
  */
 object LanProtocol {
@@ -31,6 +32,11 @@ object LanProtocol {
      * The UDP port room announcements are broadcast to.
      */
     const val DISCOVERY_PORT = 47332
+
+    /**
+     * The TCP port beatmaps are shared on (see [LanFileServer]), announced to players with a `lanInfo` frame.
+     */
+    const val FILE_PORT = 47333
 
     const val DISCOVERY_APP = "mosu-lan"
 

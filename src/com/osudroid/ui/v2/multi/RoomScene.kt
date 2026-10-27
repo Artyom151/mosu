@@ -1,5 +1,6 @@
 package com.osudroid.ui.v2.multi
 
+import com.mosu.lan.LanBeatmapTransfer
 import com.mosu.lan.LanSession
 
 import com.osudroid.BuildSettings
@@ -630,6 +631,15 @@ class RoomScene(
 
             if (beatmapInfo == null) {
                 isVisible = true
+
+                // In LAN rooms the beatmap is sent by the device hosting the room.
+                if (LanSession.isActive) {
+                    isEnabled = true
+                    leadingIcon = UISprite(ResourceManager.getInstance().getTexture("download"))
+                    text = "Download from host"
+                    onActionUp = { LanBeatmapTransfer.download(roomBeatmap) }
+                    return@apply
+                }
 
                 if (roomBeatmap.parentSetID == null) {
                     isEnabled = false

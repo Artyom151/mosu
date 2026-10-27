@@ -20,7 +20,7 @@ class DownloadFragment : LoadingFragment() {
     override val layoutID = R.layout.download_fragment
 
 
-    private lateinit var downloader: FileRequest
+    private var downloader: FileRequest? = null
 
     private lateinit var onLoad: Runnable
 
@@ -56,10 +56,24 @@ class DownloadFragment : LoadingFragment() {
         this.downloader = downloader
     }
 
+    /**
+     * For downloads not made through a [FileRequest]; [onCancel] is used to cancel them.
+     */
+    fun setOnLoad(onLoad: Runnable) {
+        this.onLoad = onLoad
+    }
+
 
     override fun callDismissOnBackPress() {
-        if (downloader.isDownloading) {
+        val downloader = downloader
+
+        if (downloader?.isDownloading == true) {
             downloader.cancel()
+            return
+        }
+
+        if (downloader == null && state.cancellable) {
+            onCancel()
             return
         }
 

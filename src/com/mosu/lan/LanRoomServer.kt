@@ -35,6 +35,7 @@ class LanRoomServer(
     maxPlayers: Int,
     private val ownerUid: Long,
     port: Int = LanProtocol.ROOM_PORT,
+    private val filePort: Int = 0,
 ) {
 
     private class Player(val uid: Long, val username: String) {
@@ -262,6 +263,7 @@ class LanRoomServer(
         }
 
         connection.send("initialConnection", roomJson())
+        connection.send("lanInfo", JSONObject().put("filePort", filePort))
 
         if (existing == null) {
             broadcast("playerJoined", playerJson(player), except = uid)
