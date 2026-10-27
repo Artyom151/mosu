@@ -18,14 +18,16 @@ object SkinDownloader {
     private val client = OkHttpClient()
 
     /**
-     * @param onProgress Called with a 0..1 progress (or -1 when the size is unknown) and the speed in bytes/second.
+     * @param expectedLength The size to report when the server doesn't send one, or -1 if unknown.
+     * @param onProgress Called with the downloaded bytes, the total size (-1 when unknown) and the speed in bytes/second.
      */
     suspend fun download(
         url: String,
         userAgent: String,
         referer: String,
         target: File,
-        onProgress: (Float, Long) -> Unit,
+        expectedLength: Long,
+        onProgress: (read: Long, total: Long, speed: Long) -> Unit,
     ) = withContext(Dispatchers.IO) {
 
         val httpUrl = url.toHttpUrlOrNull()
@@ -49,9 +51,10 @@ object SkinDownloader {
                 throw IOException("The server did not return a skin file")
             }
 
-            val total = response.body!!.contentLength()
+            val total = response.body!!.contentLength().takeIf { it > 0 } ?: expectedLength
             val started = System.nanoTime()
             var read = 0L
+            var lastReport = 0L
 
             response.body!!.byteStream().use { input ->
                 target.outputStream().use { output ->
@@ -65,8 +68,13 @@ object SkinDownloader {
                         output.write(buffer, 0, count)
                         read += count
 
-                        val seconds = ((System.nanoTime() - started) / 1e9).coerceAtLeast(0.001)
-                        onProgress(if (total > 0) read.toFloat() / total else -1f, (read / seconds).toLong())
+                        // Throttle UI updates to about 10 per second.
+                        val now = System.nanoTime()
+                        if (now - lastReport >= 100_000_000L) {
+                            lastReport = now
+                            val seconds = ((now - started) / 1e9).coerceAtLeast(0.001)
+                            onProgress(read, total, (read / seconds).toLong())
+                        }
                     }
                 }
             }

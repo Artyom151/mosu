@@ -60,6 +60,7 @@ class SkinListing : BaseFragment() {
                     onImportFile = { filePicker.launch("*/*") },
                     onOpenWeb = { state.webReady = false; state.web = it },
                     onWebDownload = ::startDownload,
+                    onVerified = ::onVerified,
                     onCancelDownload = ::cancelDownload,
                 )
             }
@@ -107,7 +108,20 @@ class SkinListing : BaseFragment() {
     }
 
 
-    private fun startDownload(item: SkinListItem, url: String, userAgent: String) {
+    /**
+     * The captcha was solved: the site waits a few seconds before starting the download, show progress right away.
+     */
+    private fun onVerified(item: SkinListItem, expectedBytes: Long) {
+        if (state.download == null) {
+            state.download = DownloadUiState(
+                title = item.name,
+                message = "Starting download…" + if (expectedBytes > 0) " (${formatMegabytes(expectedBytes)})" else "",
+                phase = DownloadPhase.Connecting,
+            )
+        }
+    }
+
+    private fun startDownload(item: SkinListItem, url: String, userAgent: String, expectedLength: Long) {
 
         if (downloadJob?.isActive == true) return
 
@@ -119,13 +133,8 @@ class SkinListing : BaseFragment() {
 
         downloadJob = scope.launch {
             try {
-                SkinDownloader.download(url, userAgent, item.pageUrl, file) { progress, speed ->
-                    state.download = DownloadUiState(
-                        title = item.name,
-                        phase = if (progress >= 0) DownloadPhase.Downloading else DownloadPhase.Connecting,
-                        progress = progress.coerceAtLeast(0f),
-                        speed = "%.2f MB/s".format(speed / 1024f / 1024f),
-                    )
+                SkinDownloader.download(url, userAgent, item.pageUrl, file, expectedLength) { read, total, speed ->
+                    state.download = progressState(item, read, total, speed)
                 }
 
                 state.download = DownloadUiState(title = item.name, message = "Installing…", phase = DownloadPhase.Importing, cancellable = false)
@@ -144,8 +153,34 @@ class SkinListing : BaseFragment() {
         }
     }
 
+    private fun progressState(item: SkinListItem, read: Long, total: Long, speed: Long): DownloadUiState {
+
+        val known = total > 0
+
+        val eta = if (known && speed > 0) {
+            val seconds = ((total - read).coerceAtLeast(0) / speed).toInt()
+            if (seconds >= 60) " • ~${seconds / 60} min ${seconds % 60} s left" else " • ~$seconds s left"
+        } else ""
+
+        return DownloadUiState(
+            title = item.name,
+            message = if (known) "${formatMegabytes(read)} / ${formatMegabytes(total)}" else formatMegabytes(read),
+            phase = if (known) DownloadPhase.Downloading else DownloadPhase.Connecting,
+            progress = if (known) read.toFloat() / total else 0f,
+            speed = formatMegabytes(speed) + "/s" + eta,
+        )
+    }
+
+    private fun formatMegabytes(bytes: Long) = "%.1f MB".format(bytes / 1024f / 1024f)
+
     private fun cancelDownload() {
-        downloadJob?.cancel()
+        if (downloadJob?.isActive == true) {
+            downloadJob?.cancel()
+        } else {
+            // Still waiting for the site to start the download.
+            state.download = null
+            state.web = null
+        }
     }
 
 

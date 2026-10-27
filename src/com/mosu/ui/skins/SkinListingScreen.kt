@@ -2,6 +2,7 @@ package com.mosu.ui.skins
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -95,7 +96,8 @@ fun SkinListingScreen(
     onLoadMore: () -> Unit,
     onImportFile: () -> Unit,
     onOpenWeb: (SkinListItem) -> Unit,
-    onWebDownload: (SkinListItem, url: String, userAgent: String) -> Unit,
+    onWebDownload: (SkinListItem, url: String, userAgent: String, contentLength: Long) -> Unit,
+    onVerified: (SkinListItem, expectedBytes: Long) -> Unit,
     onCancelDownload: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -189,7 +191,7 @@ fun SkinListingScreen(
         }
 
         state.web?.let { item ->
-            SkinVerifyDialog(item, state, onClose = { state.web = null }, onDownload = { url, ua -> onWebDownload(item, url, ua) })
+            SkinVerifyDialog(item, state, onClose = { state.web = null }, onVerified = { onVerified(item, it) }, onDownload = { url, ua, length -> onWebDownload(item, url, ua, length) })
         }
 
         state.download?.let { download ->
@@ -276,6 +278,14 @@ private const val VERIFY_PAGE_JS = """
     '.cf-turnstile{position:fixed!important;top:16px;left:8px;right:8px;margin:0!important}' +
     '#waitSection{position:fixed!important;top:100px;left:0;right:0;color:#fff;text-align:center;font-size:16px}';
   document.head.appendChild(s);
+
+  var size = (document.body.innerText.match(/\(([\d.]+)\s*MB\)/) || [])[1];
+  if (size) mosu.size(size);
+
+  // The wait section is revealed once the captcha is solved, before the site starts the download.
+  var wait = document.getElementById('waitSection');
+  if (wait) new MutationObserver(function () { if (!wait.hidden) mosu.verified(); })
+    .observe(wait, { attributes: true, childList: true, subtree: true });
 })();
 """
 
@@ -287,7 +297,13 @@ private const val VERIFY_PAGE_JS = """
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun SkinVerifyDialog(item: SkinListItem, state: SkinListingState, onClose: () -> Unit, onDownload: (url: String, userAgent: String) -> Unit) {
+private fun SkinVerifyDialog(
+    item: SkinListItem,
+    state: SkinListingState,
+    onClose: () -> Unit,
+    onVerified: (expectedBytes: Long) -> Unit,
+    onDownload: (url: String, userAgent: String, contentLength: Long) -> Unit,
+) {
 
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(enabled = false) {},
@@ -337,7 +353,28 @@ private fun SkinVerifyDialog(item: SkinListItem, state: SkinListingState, onClos
                                     }
                                 }
 
-                                setDownloadListener { url, userAgent, _, _, _ -> onDownload(url, userAgent) }
+                                // Bridge used by VERIFY_PAGE_JS. Only trusted pages are ever loaded in this WebView.
+                                var expectedBytes = -1L
+                                var verified = false
+
+                                addJavascriptInterface(object {
+                                    @JavascriptInterface
+                                    fun size(megabytes: String) {
+                                        megabytes.toDoubleOrNull()?.let { expectedBytes = (it * 1024 * 1024).toLong() }
+                                    }
+
+                                    @JavascriptInterface
+                                    fun verified() = post {
+                                        if (!verified) {
+                                            verified = true
+                                            onVerified(expectedBytes)
+                                        }
+                                    }
+                                }, "mosu")
+
+                                setDownloadListener { url, userAgent, _, _, contentLength ->
+                                    onDownload(url, userAgent, if (contentLength > 0) contentLength else expectedBytes)
+                                }
                                 loadUrl(item.pageUrl)
                             }
                         },
