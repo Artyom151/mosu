@@ -206,34 +206,42 @@ private fun SkinCard(item: SkinListItem, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SkinPreview(item: SkinListItem, onDownload: () -> Unit, onClose: () -> Unit) {
+    // The game runs in landscape, so the preview is laid out side by side to keep the buttons on screen.
     Card(
-        modifier = Modifier.padding(24.dp).fillMaxWidth(0.9f).clickable(enabled = false) {},
+        modifier = Modifier.padding(16.dp).fillMaxWidth(0.92f).clickable(enabled = false) {},
         shape = MaterialTheme.shapes.extraLarge,
     ) {
-        val image by rememberRemoteImage(item.previewUrl)
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
 
-        Box(
-            Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-            contentAlignment = Alignment.Center,
-        ) {
-            val bitmap = image
+            val image by rememberRemoteImage(item.previewUrl)
 
-            if (bitmap != null) {
-                Image(bitmap, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-            } else {
-                LoadingIndicator(Modifier.size(48.dp))
+            Box(
+                Modifier.weight(1.3f).aspectRatio(16f / 9f).clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center,
+            ) {
+                val bitmap = image
+
+                if (bitmap != null) {
+                    Image(bitmap, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                } else {
+                    LoadingIndicator(Modifier.size(48.dp))
+                }
             }
-        }
 
-        Text(item.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
+            Column(
+                Modifier.weight(1f).align(Alignment.CenterVertically),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(item.name, style = MaterialTheme.typography.titleLarge, maxLines = 4, overflow = TextOverflow.Ellipsis)
 
-        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onDownload, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Download", modifier = Modifier.padding(start = 8.dp))
+                Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text("Download", modifier = Modifier.padding(start = 8.dp))
+                }
+
+                OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Close") }
             }
-            OutlinedButton(onClick = onClose) { Text("Close") }
         }
     }
 }
